@@ -1,0 +1,21 @@
+# Dependabot's pull requests merge themselves once `all tests` passes: branch
+# protection holds the merge until then, and refuses it if they fail. Every
+# kind of update, major versions included; what the tests miss, the live
+# check after the deploy catches and rolls back.
+name: Auto-merge
+
+on: pull_request
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  dependabot:
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && github.repository == 'tori-host/examples'
+    runs-on: ubuntu-24.04
+    steps:
+      - run: gh pr merge --auto --squash "$PR"
+        env:
+          PR: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

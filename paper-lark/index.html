@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>paper lark — a static site on Tori</title>
+    <meta name="description" content="An example static site run by Tori: three files, no build step, served from Prague, EU." />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body data-example="paper-lark">
+    <main>
+      <header>
+        <img src="favicon.svg" alt="" width="36" height="36" />
+        <h1>paper lark</h1>
+        <span class="tag">static site</span>
+      </header>
+      <p class="lead">
+        This page is three files: <code>index.html</code>, <code>style.css</code> and <code>favicon.svg</code>. There is
+        no build step and no server of its own.
+      </p>
+
+      <div class="card">
+        <h2>How it is served</h2>
+        <ul>
+          <li>Tori stores the files and serves them as they are, over HTTPS, at this address.</li>
+          <li>Nothing runs for it, so it never naps: the first request of the day is as quick as the next one.</li>
+          <li>A deploy is reported live once this address serves its files, and the previous one can be rolled back.</li>
+        </ul>
+      </div>
+
+      <h2>Deploy your own</h2>
+      <p>With Node.js installed, from the directory that holds the site:</p>
+      <pre><code>git clone https://github.com/tori-host/examples
+cd examples/paper-lark
+npx tori.host</code></pre>
+      <p>
+        The first run signs you in and creates a site under a new name of its own, then writes that name to
+        <code>tori.json</code>, so that the next run updates the same site.
+      </p>
+
+      <footer>
+        <p>
+          This is an example run by <a href="https://tori.host/">Tori</a>, in Prague, EU. The source is on
+          <a href="https://github.com/tori-host/examples/tree/main/paper-lark">GitHub</a>.
+        </p>
+      </footer>
+    </main>
+  </body>
+</html>

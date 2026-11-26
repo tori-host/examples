@@ -1,0 +1,15 @@
+{
+  "name": "misty-heron",
+  "version": "1.0.0",
+  "private": true,
+  "description": "An example Express server run by Tori, built from source without a Dockerfile, at misty-heron.tori.cloud",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "express": "^5.3.0"
+  }
+}

@@ -1,0 +1,143 @@
+# Every example's own tests, its build, and an audit of what it installs.
+# A pull request merges only when `all tests` passes (branch protection), and
+# the deploy workflow runs this same file on main before it deploys.
+name: Test
+
+on:
+  pull_request:
+  workflow_call:
+    secrets:
+      EXAMPLES_FORBIDDEN:
+        required: false
+  workflow_dispatch:
+  schedule:
+    # Weekly, with nothing changed: an advisory published since the last
+    # change, or a base image that has gone stale, turns this red.
+    - cron: "40 4 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  manifest:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version: 22 }
+      - run: node --test test/examples.test.mjs
+        env:
+          EXAMPLES_FORBIDDEN: ${{ secrets.EXAMPLES_FORBIDDEN }}
+          # A pull request from a fork gets no secrets; a maintainer reads
+          # it before it can merge. Everything else must have the list.
+          EXAMPLES_FORBIDDEN_OPTIONAL: ${{ github.event.pull_request.head.repo.fork && '1' || '0' }}
+
+  node:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        example: [crimson-finch, misty-heron, sunny-tern]
+    defaults:
+      run: { working-directory: "${{ matrix.example }}" }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version: 22 }
+      # No install scripts: nothing here needs one, and a dependency's
+      # install script is the usual way a hijacked release runs its code.
+      - if: hashFiles(format('{0}/package-lock.json', matrix.example)) != ''
+        run: npm ci --ignore-scripts --no-fund
+      - if: hashFiles(format('{0}/package-lock.json', matrix.example)) != ''
+        run: npm audit --audit-level=high
+      - run: npm test
+        if: hashFiles(format('{0}/package-lock.json', matrix.example)) != ''
+      - run: node --test
+        if: hashFiles(format('{0}/package-lock.json', matrix.example)) == ''
+      # What `npx tori.host` publishes for sunny-tern is what this writes.
+      - if: matrix.example == 'sunny-tern'
+        run: npm run build && test -s dist/index.html
+
+  mossy-starling:
+    runs-on: ubuntu-24.04
+    env:
+      # Tori hands an app its managed database as `sslmode=require` against a
+      # certificate no public authority issued: the one shape in which pg 8
+      # refuses to connect unless told to read `require` as libpq does. The
+      # database here is the same shape, or that would pass untested.
+      TEST_DATABASE_URL: postgres://postgres:ci-throwaway@127.0.0.1:5432/postgres?sslmode=require
+    defaults:
+      run: { working-directory: mossy-starling }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version: 22 }
+      - name: Postgres with TLS
+        run: |
+          docker run -d --name pg -p 127.0.0.1:5432:5432 -e POSTGRES_PASSWORD=ci-throwaway \
+            postgres:18@sha256:86c951e05bf56c93d95d397747fb8820ac76cc3bedb78f43abd83eedbe3666ae \
+            -c ssl=on -c ssl_cert_file=/etc/ssl/certs/ssl-cert-snakeoil.pem -c ssl_key_file=/etc/ssl/private/ssl-cert-snakeoil.key
+          # Over TCP: while the image initialises, its temporary server
+          # listens on the socket only, so this answers once the real one is up.
+          for _ in $(seq 60); do docker exec pg pg_isready -q -h 127.0.0.1 && exit 0; sleep 1; done
+          docker logs pg; exit 1
+      - run: npm ci --ignore-scripts --no-fund
+      - run: npm audit --audit-level=high
+      - run: npm test
+
+  entry-guards:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version: 22 }
+      - run: (cd misty-heron && npm ci --ignore-scripts --no-fund) && (cd mossy-starling && npm ci --ignore-scripts --no-fund)
+      - run: .github/scripts/entry-guards.sh
+
+  amber-ibis:
+    runs-on: ubuntu-24.04
+    defaults:
+      run: { working-directory: amber-ibis }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with: { python-version: "3.13" }
+      # Every line has a hash, so pip refuses anything that is not exactly
+      # what was compiled, and anything the files do not list.
+      - run: python -m pip install --quiet --disable-pip-version-check --require-hashes -r requirements-dev.txt
+      - run: python -m pytest -q -p no:cacheprovider
+      - name: Audit what the build installs
+        run: |
+          python -m venv /tmp/audit
+          /tmp/audit/bin/pip install --quiet --disable-pip-version-check pip-audit==2.10.1
+          /tmp/audit/bin/pip-audit --progress-spinner off --require-hashes --disable-pip -r requirements.txt
+
+  # crimson-finch is the only example that brings its own base image. A
+  # finding with a fix waits for Dependabot to move the digest.
+  image:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - run: docker build -t crimson-finch:ci crimson-finch
+      - run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:0.76.2@sha256:8f6bb947dbc528902e11f2f5be52f7b519f6a39d5d148f41166f2040499768fb \
+            image --quiet --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed crimson-finch:ci
+
+  # The one check branch protection requires, so a job added above is
+  # required without anyone editing the protection.
+  all:
+    name: all tests
+    if: always()
+    needs: [manifest, node, mossy-starling, entry-guards, amber-ibis, image]
+    runs-on: ubuntu-24.04
+    steps:
+      - run: echo "$NEEDS" | jq -e 'to_entries | all(.value.result == "success")'
+        env:
+          NEEDS: ${{ toJSON(needs) }}

@@ -1,0 +1,67 @@
+{
+  "$comment": "One entry per example directory. The tests read it against the directories; the deploy workflow deploys each entry with `deploy`, passing `release` when there is one, and then fetches `check.path` until the page carries `check.contains`. Change an example and its entry together.",
+  "repository": "https://github.com/tori-host/examples",
+  "location": "Prague, EU",
+  "examples": [
+    {
+      "name": "paper-lark",
+      "title": "A static site",
+      "stack": "HTML and CSS, no build step",
+      "kind": "static",
+      "url": "https://paper-lark.tori.cloud",
+      "deploy": ["npx tori.host"],
+      "check": { "path": "/", "contains": "data-example=\"paper-lark\"" }
+    },
+    {
+      "name": "sunny-tern",
+      "title": "A single-page app",
+      "stack": "Vite and React, built on your machine",
+      "kind": "static",
+      "url": "https://sunny-tern.tori.cloud",
+      "deploy": ["npm install", "npx tori.host"],
+      "check": { "path": "/about", "contains": "data-example=\"sunny-tern\"" }
+    },
+    {
+      "name": "crimson-finch",
+      "title": "A Node.js server with a Dockerfile",
+      "stack": "Node.js, no dependencies, its own Dockerfile",
+      "kind": "service",
+      "build": "dockerfile",
+      "url": "https://crimson-finch.tori.cloud",
+      "deploy": ["npx tori.host"],
+      "check": { "path": "/", "contains": "data-bird=" }
+    },
+    {
+      "name": "misty-heron",
+      "title": "An Express server",
+      "stack": "Node.js and Express, built on Tori without a Dockerfile",
+      "kind": "service",
+      "build": "detected",
+      "url": "https://misty-heron.tori.cloud",
+      "deploy": ["npx tori.host"],
+      "check": { "path": "/", "contains": "data-example=\"misty-heron\"" }
+    },
+    {
+      "name": "amber-ibis",
+      "title": "A FastAPI server",
+      "stack": "Python and FastAPI, built on Tori without a Dockerfile",
+      "kind": "service",
+      "build": "detected",
+      "url": "https://amber-ibis.tori.cloud",
+      "deploy": ["npx tori.host"],
+      "check": { "path": "/", "contains": "data-example=\"amber-ibis\"" }
+    },
+    {
+      "name": "mossy-starling",
+      "title": "A server with a Postgres database",
+      "stack": "Node.js with Tori's managed Postgres, migrated by a release command",
+      "kind": "service",
+      "build": "detected",
+      "database": true,
+      "release": "node migrate.mjs",
+      "url": "https://mossy-starling.tori.cloud",
+      "deploy": ["npx tori.host", "npx tori.host db create", "npx tori.host db status   # again, until it says ready", "npx tori.host env list    # again, until DATABASE_URL is listed", "npx tori.host deploy --release \"node migrate.mjs\""],
+      "check": { "path": "/", "contains": "data-database=\"ready\"" }
+    }
+  ]
+}

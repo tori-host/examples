@@ -1,0 +1,5 @@
+# What the server needs, and what Tori installs when it builds it. The
+# versions live in requirements.txt, compiled from this file with hashes:
+#   pip-compile --generate-hashes --strip-extras requirements.in
+fastapi
+uvicorn

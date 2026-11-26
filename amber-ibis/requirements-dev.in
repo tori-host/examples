@@ -1,0 +1,5 @@
+# What the tests need on top. Compiled the same way into requirements-dev.txt:
+#   pip-compile --generate-hashes --strip-extras requirements-dev.in
+-r requirements.in
+pytest
+httpx2

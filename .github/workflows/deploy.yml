@@ -1,0 +1,97 @@
+# Put main live on tori.cloud, and check that every example is up.
+#
+# Not only on push: a merge that GitHub's auto-merge makes with the workflow
+# token starts no workflow, so a Dependabot update would never be deployed by
+# a push trigger alone. The schedule compares each example with the commit
+# its tag deployed/<name> points at, deploys what is behind, and then checks
+# every example live, deployed or not.
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "*/30 * * * *"
+    # Weekly, every example: a service is rebuilt from source on Tori, and
+    # the rebuild picks up the current base image even when nothing here moved.
+    - cron: "20 5 * * 1"
+  workflow_dispatch:
+    inputs:
+      all:
+        description: Redeploy every example, changed or not
+        type: boolean
+        default: false
+
+# One run at a time, and never cancelled halfway: a deploy that is cut off
+# leaves no tag, so the next run deploys it again.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    outputs:
+      examples: ${{ steps.plan.outputs.examples }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { fetch-depth: 0, persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version: 22 }
+      - id: plan
+        run: node .github/scripts/plan.mjs >> "$GITHUB_OUTPUT"
+        env:
+          ALL: ${{ github.event.schedule == '20 5 * * 1' || inputs.all == true }}
+
+  test:
+    needs: plan
+    if: needs.plan.outputs.examples != '[]'
+    uses: ./.github/workflows/test.yml
+    secrets: inherit
+
+  deploy:
+    needs: [plan, test]
+    if: needs.plan.outputs.examples != '[]'
+    runs-on: ubuntu-24.04
+    # The deploy tokens are secrets of this environment, which only main can use.
+    environment: tori.cloud
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        example: ${{ fromJSON(needs.plan.outputs.examples) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version: 22 }
+      - run: node .github/scripts/deploy.mjs "$EXAMPLE"
+        env:
+          EXAMPLE: ${{ matrix.example.name }}
+          TORI_TOKEN: ${{ secrets[matrix.example.secret] }}
+          TORI_NO_UPDATE_CHECK: "1"
+      - name: Remember what is live
+        run: git tag -f "deployed/$EXAMPLE" "$GITHUB_SHA" && git push -f origin "refs/tags/deployed/$EXAMPLE"
+        env:
+          EXAMPLE: ${{ matrix.example.name }}
+
+  probe:
+    needs: [plan, test, deploy]
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version: 22 }
+      - run: node .github/scripts/probe.mjs
+      # A deploy that failed, or tests that kept it from starting, leave every
+      # example up and still have to turn this run red.
+      - if: >-
+          needs.plan.result != 'success'
+          || (needs.test.result != 'success' && needs.test.result != 'skipped')
+          || (needs.deploy.result != 'success' && needs.deploy.result != 'skipped')
+        run: echo "planning, the tests or a deploy failed; see those jobs" && exit 1

@@ -1,0 +1,3 @@
+# Written by a deploy from a checkout; it names the app it deploys to.
+*/tori.json
+node_modules/

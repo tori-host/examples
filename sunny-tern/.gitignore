@@ -1,0 +1,5 @@
+# Written by the first `npx tori.host` in this directory: it names the app
+# the directory deploys to, and that is the deployer's own.
+tori.json
+node_modules
+dist
