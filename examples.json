@@ -10,7 +10,7 @@
       "kind": "static",
       "url": "https://paper-lark.tori.cloud",
       "deploy": ["npx tori.host"],
-      "check": { "path": "/", "contains": "data-example=\"paper-lark\"" }
+      "check": { "path": "/", "contains": "data-check=\"negative-control\"" }
     },
     {
       "name": "sunny-tern",
