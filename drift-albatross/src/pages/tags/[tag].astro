@@ -1,0 +1,22 @@
+---
+import { getCollection } from 'astro:content'
+import Base from '../../layouts/Base.astro'
+import PostList from '../../components/PostList.astro'
+import { byTag } from '../../journal.mjs'
+
+// A page for each tag some post carries, and for no other: /tags/<anything>
+// is not a page that renders its own path.
+export async function getStaticPaths() {
+  const tags = byTag(await getCollection('posts'))
+  return [...tags].map(([tag, posts]) => ({ params: { tag }, props: { posts } }))
+}
+
+const { tag } = Astro.params
+const { posts } = Astro.props
+---
+
+<Base title={`Tagged ${tag}`} description={`Trips in the journal tagged ${tag}.`}>
+  <h1 class="post-title">Tagged <span class="tag">{tag}</span></h1>
+  <PostList posts={posts} />
+  <p><a href="/tags/">← All tags</a></p>
+</Base>

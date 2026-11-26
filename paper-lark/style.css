@@ -144,3 +144,80 @@ footer {
   color: var(--ink-soft);
   font-size: 0.9rem;
 }
+
+/* Lark Cafe's own. */
+h3 {
+  margin: 1.25rem 0 0.25rem;
+  font-size: 0.95rem;
+  font-family: var(--mono);
+}
+
+.card > h3:first-child {
+  margin-top: 0;
+}
+
+.aside {
+  margin: 0.75rem 0 0;
+  color: var(--vermilion-deep);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.small {
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+
+.menu {
+  margin: 0;
+}
+
+/* A price sits at the end of its line, with a dotted leader between, the way a printed menu does it. */
+.menu div {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.2rem 0;
+}
+
+.menu dt {
+  flex: 0 1 auto;
+}
+
+.menu dd {
+  order: 2;
+  margin: 0;
+  font-family: var(--mono);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.menu div::before {
+  content: '';
+  order: 1;
+  flex: 1 1 1rem;
+  border-bottom: 2px dotted var(--ink-soft);
+  transform: translateY(-0.25rem);
+}
+
+.hours {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.hours th,
+.hours td {
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--frame);
+  text-align: left;
+}
+
+.hours td {
+  font-family: var(--mono);
+  text-align: right;
+}
+
+address {
+  font-style: normal;
+  font-weight: 700;
+}

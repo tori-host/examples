@@ -1,4 +1,5 @@
-// mossy starling: a server that keeps its data in Tori's managed Postgres.
+// mossy starling: "What's for lunch?", a poll that keeps its votes in Tori's
+// managed Postgres.
 //
 // crimson finch, the homepage's demo, keeps its counts in memory, and they
 // start over whenever it naps. This one keeps them in a database, so they are
@@ -9,9 +10,9 @@
 //
 // - The buttons are plain HTML forms. A click posts, the server counts it and
 //   sends the browser back to the page. No script is needed, and none is sent.
-// - Nothing a visitor types is stored or shown: a sighting is a click on a
-//   bird from a fixed list. A public example with a text field would be a
-//   billboard for whoever finds it first.
+// - Nothing a visitor types is stored or shown: a vote is a click on one of
+//   a fixed list of options. A poll where anyone could add an option would be
+//   a billboard for whoever finds it first.
 import { createServer } from 'node:http'
 import { readFileSync, realpathSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -21,12 +22,14 @@ export const LOCATION = 'Prague, EU'
 const SOURCE = 'https://github.com/tori-host/examples/tree/main/mossy-starling'
 export const DEFAULT_WRITES_PER_MINUTE = 120
 
-export const BIRDS = [
-  { id: 'common-starling', name: 'common starling' },
-  { id: 'house-sparrow', name: 'house sparrow' },
-  { id: 'common-blackbird', name: 'common blackbird' },
-  { id: 'great-tit', name: 'great tit' },
-  { id: 'eurasian-magpie', name: 'Eurasian magpie' },
+/** What the poll offers, in the order it shows them. A vote names one by its id. */
+export const OPTIONS = [
+  { id: 'soup', name: 'Soup and bread' },
+  { id: 'pizza', name: 'Pizza' },
+  { id: 'ramen', name: 'Ramen' },
+  { id: 'falafel', name: 'Falafel wrap' },
+  { id: 'salad', name: 'Salad bowl' },
+  { id: 'burger', name: 'Burger' },
 ]
 
 const SECURITY_HEADERS = {
@@ -46,7 +49,7 @@ const escapeHtml = (value) =>
 /**
  * Whether a post was sent by a page on another site. A browser needs no
  * permission to send a cross-site form, so without this any page on the web
- * could make its visitors count birds here. `Sec-Fetch-Site` is the browser's
+ * could make its visitors vote here. `Sec-Fetch-Site` is the browser's
  * own statement; where it is absent, `Origin` is compared with the host that
  * was asked. A request with neither is not a browser acting for another site
  * (curl, a script), and the cap is what bounds those.
@@ -72,38 +75,50 @@ npx tori.host deploy --release "node migrate.mjs"`
 const NOT_READY = {
   missing: {
     title: 'No database yet',
-    text: 'This copy of the server was deployed without a database, so it has nowhere to keep a count. Create one, wait until it is ready and its address is attached to the app, then deploy again with the release command that creates the table:',
+    text: 'This copy of the server was deployed without a database, so it has nowhere to keep a vote. Create one, wait until it is ready and its address is attached to the app, then deploy again with the release command that creates the table:',
   },
   unmigrated: {
     title: 'The database is empty',
-    text: 'The database is there, and the table this server counts in is not. It is created by the release command, which runs before a deploy takes traffic:',
+    text: 'The database is there, and the table this server counts votes in is not. It is created by the release command, which runs before a deploy takes traffic:',
   },
   unreachable: {
     title: 'The database did not answer',
-    text: 'This server could not reach its database just now, so it cannot show the counts. The server log says why: npx tori.host logs. Reloading may be enough.',
+    text: 'This server could not reach its database just now, so it cannot show the votes. The server log says why: npx tori.host logs. Reloading may be enough.',
   },
+}
+
+const votes = (n) => `${n} ${n === 1 ? 'vote' : 'votes'}`
+
+/**
+ * Today's results, one bar per option. A bar is a <progress>: the page's
+ * CSP allows no inline style, so a width set in a style attribute would not
+ * be drawn.
+ */
+function results(counts, notice) {
+  const total = OPTIONS.reduce((sum, option) => sum + (counts.get(option.id) ?? 0), 0)
+  const rows = OPTIONS.map((option) => {
+    const count = counts.get(option.id) ?? 0
+    const share = total === 0 ? 0 : Math.round((count / total) * 100)
+    return `
+          <li class="card option" data-option="${escapeHtml(option.id)}">
+            <span class="name" id="option-${escapeHtml(option.id)}">${escapeHtml(option.name)}</span>
+            <span class="count">${escapeHtml(votes(count))}</span>
+            <form method="post" action="/votes/${escapeHtml(option.id)}">
+              <button type="submit" aria-label="${escapeHtml(`Vote for ${option.name}`)}">Vote</button>
+            </form>
+            <progress max="${Math.max(total, 1)}" value="${count}" aria-labelledby="option-${escapeHtml(option.id)}">${share}%</progress>
+          </li>`
+  }).join('')
+  return `<ul class="options">${rows}
+        </ul>
+        ${notice}
+        <p>${escapeHtml(votes(total))} today. Every vote is a row in Postgres: they are still here after the server naps,
+          restarts or is deployed again, and the poll starts over at midnight, Prague time.</p>`
 }
 
 function page(view, startedAt) {
   const notice = view.notice ? `<p class="notice" role="status">${escapeHtml(view.notice)}</p>` : ''
-  const body =
-    view.state === 'ready'
-      ? `<ul class="sightings">${BIRDS.map((bird) => {
-          const seen = view.counts.get(bird.id)
-          const count = seen?.count ?? 0
-          return `
-          <li class="card row" data-bird="${escapeHtml(bird.id)}">
-            <span class="name">${escapeHtml(bird.name)}</span>
-            <span class="count" aria-label="${escapeHtml(`${count} ${count === 1 ? 'sighting' : 'sightings'}`)}">${count}</span>
-            <form method="post" action="/sightings/${escapeHtml(bird.id)}">
-              <button type="submit" aria-label="${escapeHtml(`I saw a ${bird.name}`)}">I saw one</button>
-            </form>
-          </li>`
-        }).join('')}
-        </ul>
-        ${notice}
-        <p>Every count is a row in Postgres. They are still here after the server naps, restarts or is deployed again.</p>`
-      : `${notice}
+  const body = view.state === 'ready' ? results(view.counts, notice) : `${notice}
         <div class="card">
           <h2>${escapeHtml(NOT_READY[view.state].title)}</h2>
           <p>${escapeHtml(NOT_READY[view.state].text)}</p>
@@ -114,8 +129,8 @@ function page(view, startedAt) {
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>mossy starling — a server with Postgres on Tori</title>
-    <meta name="description" content="An example server run by Tori that keeps its data in a managed Postgres database, in ${LOCATION}." />
+    <title>What's for lunch? — mossy starling, a server with Postgres on Tori</title>
+    <meta name="description" content="A lunch poll: an example server run by Tori that keeps its votes in a managed Postgres database, in ${LOCATION}." />
     <meta name="robots" content="noindex" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="stylesheet" href="/style.css" />
@@ -124,16 +139,17 @@ function page(view, startedAt) {
     <main>
       <header>
         <img src="/favicon.svg" alt="" width="36" height="36" />
-        <h1>mossy starling</h1>
+        <h1>What's for lunch?</h1>
         <span class="tag">server + Postgres</span>
       </header>
-      <p class="lead">Birds seen from a window, counted by everyone who visits.</p>
+      <p class="lead">One vote a click, from everyone who visits. The bars are today's votes.</p>
       ${body}
 
       <h2>How it runs</h2>
       <ul>
-        <li>Tori builds the server from source and runs <code>npm start</code>. The database is Tori's managed Postgres;
-          the server finds it in <code>DATABASE_URL</code>, which Tori sets.</li>
+        <li>This is mossy starling, an example of a server with a database. Tori builds it from source and runs
+          <code>npm start</code>. The database is Tori's managed Postgres; the server finds it in
+          <code>DATABASE_URL</code>, which Tori sets.</li>
         <li>The table is created by <code>migrate.mjs</code>, which Tori runs as the release command before a new
           deploy takes traffic. If it fails, the deploy that was live keeps serving.</li>
         <li>This copy of the server started <time datetime="${startedAt}">${startedAt.replace('T', ' ').replace(/\..*$/, '')} UTC</time>.</li>
@@ -205,17 +221,17 @@ export function createApp({ db, writesPerMinute = DEFAULT_WRITES_PER_MINUTE, now
   // What the page says once, after a refused post: the browser comes back to
   // `/?refused=<reason>`, and the reason is one of these, never the visitor's text.
   const REFUSED = {
-    busy: 'This example takes a limited number of sightings a minute. Try again shortly.',
-    gone: 'That bird is not on the list.',
+    busy: 'This example takes a limited number of votes a minute. Try again shortly.',
+    gone: 'That is not one of the options.',
     // Not "was not counted": a write whose answer was lost may have been
     // committed, and a visitor told to retry would count it twice.
-    failed: 'The database did not confirm that sighting, so it may or may not have been counted.',
+    failed: 'The database did not confirm that vote, so it may or may not have been counted.',
   }
   // What follows that sentence depends on whether the page can show a count:
   // a database that has stopped answering since may be the reason for both.
   const AFTER_FAILED = {
-    ready: 'The count above is what it holds now.',
-    other: 'Look at the count again once the database answers, before you add it again.',
+    ready: 'The results above are what it holds now.',
+    other: 'Look at the results again once the database answers, before you vote again.',
   }
 
   const handle = async (req, res) => {
@@ -235,26 +251,26 @@ export function createApp({ db, writesPerMinute = DEFAULT_WRITES_PER_MINUTE, now
       return send(res, 200, 'text/html; charset=utf-8', page(view, startedAt), { 'Cache-Control': 'no-store' })
     }
 
-    const sighting = /^\/sightings\/([a-z-]{1,40})$/.exec(path)
-    if (sighting && req.method !== 'POST') return text(res, 405, 'method not allowed', { Allow: 'POST' })
-    if (sighting) {
+    const vote = /^\/votes\/([a-z-]{1,40})$/.exec(path)
+    if (vote && req.method !== 'POST') return text(res, 405, 'method not allowed', { Allow: 'POST' })
+    if (vote) {
       // Before the cap, so that another site's page cannot spend it either.
-      if (fromAnotherSite(req.headers)) return text(res, 403, 'This example takes sightings from its own page only.')
+      if (fromAnotherSite(req.headers)) return text(res, 403, 'This example takes votes from its own page only.')
       const back = (refused) => send(res, 303, 'text/plain; charset=utf-8', '', { Location: refused ? `/?refused=${refused}` : '/' })
-      if (!BIRDS.some((bird) => bird.id === sighting[1])) return back('gone')
+      if (!OPTIONS.some((option) => option.id === vote[1])) return back('gone')
       if (!mayWrite()) return back('busy')
       if (!db) return back()
       try {
-        await db.record(sighting[1])
+        await db.vote(vote[1])
       } catch (error) {
-        console.error('recording a sighting failed:', error.message)
+        console.error('recording a vote failed:', error.message)
         return back('failed')
       }
       return back()
     }
 
     if (!read && (path === '/' || path === '/healthz' || files[path])) return text(res, 405, 'method not allowed', { Allow: 'GET, HEAD' })
-    return text(res, 404, 'Nothing here. The birds are at /')
+    return text(res, 404, "Nothing here. What's for lunch is at /")
   }
 
   return createServer((req, res) => {

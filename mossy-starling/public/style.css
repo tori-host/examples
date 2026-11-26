@@ -146,32 +146,59 @@ footer {
 }
 
 /* mossy starling's own. */
-.sightings {
+.options {
   list-style: none;
   padding: 0;
   display: grid;
   gap: 0.5rem;
 }
 
-.row {
-  display: flex;
+.option {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.4rem 0.75rem;
   margin-top: 0;
-  padding: 0.5rem 0.5rem 0.5rem 1.25rem;
-  border-radius: 999px;
+  padding: 0.6rem 0.6rem 0.75rem 1.25rem;
 }
 
-.row .name {
-  margin-right: auto;
+.option .name {
   font-weight: 700;
 }
 
-.row .count {
+.option .count {
   font-family: var(--mono);
-  font-weight: 700;
+  font-size: 0.9rem;
+  white-space: nowrap;
 }
 
-.row form {
+.option form {
   margin: 0;
+}
+
+/* The bar: a <progress>, drawn the same in every browser. */
+.option progress {
+  grid-column: 1 / -1;
+  width: 100%;
+  height: 0.6rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--washi);
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.option progress::-webkit-progress-bar {
+  border-radius: 999px;
+  background: var(--washi);
+}
+
+.option progress::-webkit-progress-value {
+  border-radius: 999px;
+  background: var(--vermilion-deep);
+}
+
+.option progress::-moz-progress-bar {
+  border-radius: 999px;
+  background: var(--vermilion-deep);
 }

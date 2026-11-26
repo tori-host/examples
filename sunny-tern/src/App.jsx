@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { BIRDS, STORAGE_KEY, load, save, step, total } from './tally.js'
+import { MAX_NAME, MAX_TITLE, STORAGE_KEY, addExpense, addPerson, load, removeExpense, removePerson, save } from './bill.js'
+import { balances, formatAmount, settle } from './settle.js'
 
 const SOURCE = 'https://github.com/tori-host/examples/tree/main/sunny-tern'
 
 // Reading `window.localStorage` itself throws where a browser blocks storage
-// for the site; the tally then lasts as long as the page, and says so.
+// for the site; the bill then lasts as long as the page, and says so.
 function browserStorage() {
   try {
     return window.localStorage
@@ -17,7 +18,7 @@ function browserStorage() {
 // between them with the History API. Opening /about directly works too,
 // because Tori answers a path that names no file with index.html, and this
 // script then reads the path. That is what makes it a single-page app.
-const PAGES = { '/': 'tally', '/about': 'about' }
+const PAGES = { '/': 'bill', '/about': 'about' }
 const pageOf = (path) => PAGES[path] ?? 'missing'
 
 function usePath() {
@@ -38,58 +39,187 @@ function usePath() {
   return [path, go]
 }
 
-// The tally lives in App, not in the page that shows it: moving to the other
-// page and back must not lose counts a browser that keeps nothing still holds.
+// The bill lives in App, not in the page that shows it: moving to the other
+// page and back must not lose a bill that a browser keeping nothing still holds.
 //
-// Another tab of the app keeps the same tally. So a change starts from what
+// Another tab of the app keeps the same bill. So a change starts from what
 // the browser holds now, not from what this tab read when it opened, and a
 // change saved in another tab is shown here as it happens.
-// Where the browser keeps nothing, this tab's own counts are all there is.
+// Where the browser keeps nothing, this tab's own bill is all there is.
 //
-// Only this tab's own clicks write. A tally shown because another tab changed
+// Only this tab's own clicks write. A bill shown because another tab changed
 // it is not written back: by the time it would be, the other tab may have
-// counted again, and the copy would undo that.
-function useTally() {
-  const [tally, setTally] = useState(() => load(browserStorage()))
+// changed it again, and the copy would undo that.
+function useBill() {
+  const [bill, setBill] = useState(() => load(browserStorage()))
   const [kept, setKept] = useState(true)
   useEffect(() => {
     const onStorage = (event) => {
-      if (event.key === STORAGE_KEY) setTally(load(browserStorage()))
+      if (event.key === STORAGE_KEY) setBill(load(browserStorage()))
     }
     window.addEventListener('storage', onStorage)
     return () => window.removeEventListener('storage', onStorage)
   }, [])
-  const change = (id, by) => {
+  /** Apply a change from bill.js. Returns its error, if it had one. */
+  const change = (apply) => {
     const storage = browserStorage()
-    const next = step(kept && storage ? load(storage) : tally, id, by)
-    setKept(save(storage, next))
-    setTally(next)
+    const result = apply(kept && storage ? load(storage) : bill)
+    if (result.error) return result.error
+    setKept(save(storage, result.bill))
+    setBill(result.bill)
+    return null
   }
-  return { tally, kept, change }
+  return { bill, kept, change }
 }
 
-function Tally({ tally, kept, change }) {
+function People({ bill, change }) {
+  const [name, setName] = useState('')
+  const [error, setError] = useState(null)
+  const submit = (event) => {
+    event.preventDefault()
+    const failed = change((current) => addPerson(current, name))
+    setError(failed)
+    if (!failed) setName('')
+  }
+  return (
+    <section aria-labelledby="people">
+      <h2 id="people">People</h2>
+      {bill.people.length > 0 && (
+        <ul className="chips">
+          {bill.people.map((person) => (
+            <li key={person.id}>
+              {person.name}
+              <button type="button" className="remove" onClick={() => setError(change((current) => removePerson(current, person.id)))} aria-label={`Remove ${person.name}`}>
+                ×
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <form className="inline" onSubmit={submit}>
+        <label htmlFor="person-name">Name</label>
+        <input id="person-name" value={name} onChange={(event) => setName(event.target.value)} maxLength={MAX_NAME} autoComplete="off" />
+        <button type="submit">Add</button>
+      </form>
+      {error && <p className="notice" role="alert">{error}</p>}
+    </section>
+  )
+}
+
+function NewExpense({ bill, change }) {
+  const [title, setTitle] = useState('')
+  const [amount, setAmount] = useState('')
+  const [paidBy, setPaidBy] = useState('')
+  // Who it is split among, as the ids left out: a new person is in by default.
+  const [left, setLeft] = useState(() => new Set())
+  const [error, setError] = useState(null)
+  const payer = bill.people.some((person) => person.id === paidBy) ? paidBy : (bill.people[0]?.id ?? '')
+  const among = bill.people.map((person) => person.id).filter((id) => !left.has(id))
+  const toggle = (id) => {
+    const next = new Set(left)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    setLeft(next)
+  }
+  const submit = (event) => {
+    event.preventDefault()
+    const failed = change((current) => addExpense(current, { title, amount, paidBy: payer, among }))
+    setError(failed)
+    if (!failed) {
+      setTitle('')
+      setAmount('')
+    }
+  }
+  if (bill.people.length === 0) return <p>Add the people first: an expense needs someone who paid.</p>
+  return (
+    <form className="card expense" onSubmit={submit}>
+      <label htmlFor="expense-title">What for</label>
+      <input id="expense-title" value={title} onChange={(event) => setTitle(event.target.value)} maxLength={MAX_TITLE} autoComplete="off" />
+      <label htmlFor="expense-amount">Amount</label>
+      <input id="expense-amount" value={amount} onChange={(event) => setAmount(event.target.value)} inputMode="decimal" placeholder="0.00" maxLength={20} autoComplete="off" />
+      <label htmlFor="expense-payer">Paid by</label>
+      <select id="expense-payer" value={payer} onChange={(event) => setPaidBy(event.target.value)}>
+        {bill.people.map((person) => (
+          <option key={person.id} value={person.id}>
+            {person.name}
+          </option>
+        ))}
+      </select>
+      <fieldset>
+        <legend>Split equally among</legend>
+        {bill.people.map((person) => (
+          <label key={person.id} className="check">
+            <input type="checkbox" checked={!left.has(person.id)} onChange={() => toggle(person.id)} />
+            {person.name}
+          </label>
+        ))}
+      </fieldset>
+      <button type="submit">Add expense</button>
+      {error && <p className="notice" role="alert">{error}</p>}
+    </form>
+  )
+}
+
+function Bill({ bill, kept, change }) {
+  const names = new Map(bill.people.map((person) => [person.id, person.name]))
+  const balance = balances(bill.people, bill.expenses)
+  const transfers = settle(balance)
+  const spent = bill.expenses.reduce((sum, expense) => sum + expense.amount, 0)
   return (
     <>
-      <p className="lead">Count the birds on a walk. The tally stays in this browser, and nothing is sent anywhere.</p>
-      <ul className="tally">
-        {BIRDS.map((bird) => (
-          <li key={bird.id} className="card row">
-            <span className="name">{bird.name}</span>
-            <button type="button" onClick={() => change(bird.id, -1)} aria-label={`One fewer ${bird.name}`}>
-              −
-            </button>
-            <output aria-live="polite" aria-label={`${bird.name} count`}>{tally[bird.id]}</output>
-            <button type="button" onClick={() => change(bird.id, 1)} aria-label={`One more ${bird.name}`}>
-              +
-            </button>
-          </li>
-        ))}
-      </ul>
-      <p>
-        <strong>{total(tally)}</strong> birds counted.
+      <p className="lead">
+        Add who was there and what each of them paid for. The page works out who pays whom, in as few transfers as it
+        can. The bill stays in this browser, and nothing is sent anywhere.
       </p>
-      {!kept && <p className="notice">This browser would not keep the tally, so it lasts until the page is closed.</p>}
+      <People bill={bill} change={change} />
+
+      <section aria-labelledby="expenses">
+        <h2 id="expenses">Expenses</h2>
+        {bill.expenses.length > 0 && (
+          <ul className="list">
+            {bill.expenses.map((expense) => (
+              <li key={expense.id} className="card row">
+                <span className="what">
+                  <strong>{expense.title}</strong>
+                  <span>
+                    {names.get(expense.paidBy)} paid, split among {expense.among.map((id) => names.get(id)).join(', ')}
+                  </span>
+                </span>
+                <span className="amount">{formatAmount(expense.amount)}</span>
+                <button type="button" className="remove" onClick={() => change((current) => removeExpense(current, expense.id))} aria-label={`Remove ${expense.title}`}>
+                  ×
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <NewExpense bill={bill} change={change} />
+      </section>
+
+      <section aria-labelledby="settle">
+        <h2 id="settle">Who pays whom</h2>
+        {bill.expenses.length === 0 && <p>Nothing to settle yet.</p>}
+        {bill.expenses.length > 0 && transfers.length === 0 && <p>Everyone is even.</p>}
+        {transfers.length > 0 && (
+          <ul className="list" aria-live="polite">
+            {transfers.map((transfer) => (
+              <li key={`${transfer.from}-${transfer.to}`} className="card row">
+                <span className="what transfer">
+                  <strong>{names.get(transfer.from)}</strong> pays <strong>{names.get(transfer.to)}</strong>
+                </span>
+                <span className="amount">{formatAmount(transfer.amount)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        {bill.expenses.length > 0 && (
+          <p className="small">
+            {formatAmount(spent)} spent in all. Shares are whole cents: a cent that does not divide goes to the first
+            people in the list.
+          </p>
+        )}
+      </section>
+      {!kept && <p className="notice">This browser would not keep the bill, so it lasts until the page is closed.</p>}
     </>
   )
 }
@@ -110,6 +240,10 @@ function About() {
             link to any page of the app works when it is opened directly.
           </li>
           <li>A path that names a file that is not there is a 404.</li>
+          <li>
+            The bill is kept in this browser's <code>localStorage</code>. No one else sees it, and clearing the site's
+            data clears it.
+          </li>
         </ul>
       </div>
       <h2>Deploy your own</h2>
@@ -133,30 +267,31 @@ npx tori.host`}</code>
 export default function App() {
   const [path, go] = usePath()
   const page = pageOf(path)
-  const tally = useTally()
+  const bill = useBill()
   useEffect(() => {
-    document.title = page === 'about' ? 'About — sunny tern' : 'sunny tern — a single-page app on Tori'
+    document.title = page === 'about' ? 'About — Split the bill' : 'Split the bill — a single-page app on Tori'
   }, [page])
   return (
     <main>
       <header>
         <img src="/favicon.svg" alt="" width="36" height="36" />
-        <h1>sunny tern</h1>
+        <h1>Split the bill</h1>
         <span className="tag">single-page app</span>
       </header>
       <nav aria-label="Pages">
-        <a href="/" onClick={go('/')} aria-current={page === 'tally' ? 'page' : undefined}>
-          tally
+        <a href="/" onClick={go('/')} aria-current={page === 'bill' ? 'page' : undefined}>
+          the bill
         </a>
         <a href="/about" onClick={go('/about')} aria-current={page === 'about' ? 'page' : undefined}>
           how it works
         </a>
       </nav>
-      {page === 'tally' && <Tally {...tally} />}
+      {page === 'bill' && <Bill {...bill} />}
       {page === 'about' && <About />}
+      {/* The path is not repeated here: an address someone else wrote is never shown as text on this page. */}
       {page === 'missing' && (
         <p className="lead">
-          There is no page at <code>{path}</code> in this app. <a href="/" onClick={go('/')}>Back to the tally</a>.
+          There is no such page in this app. <a href="/" onClick={go('/')}>Back to the bill</a>.
         </p>
       )}
       <footer>

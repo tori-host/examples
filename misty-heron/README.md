@@ -1,14 +1,38 @@
 # misty heron
 
-An Express server with no Dockerfile: one page and one JSON endpoint, both
-naming the bird of the day. It runs at <https://misty-heron.tori.cloud>, where
-it is an example run by [Tori](https://tori.host/).
+A placeholder image service: `GET /640x360.svg` answers an SVG 640 by 360
+pixels that says `640 × 360`, for a layout that is waiting for its pictures.
+An Express server with no Dockerfile. It runs at
+<https://misty-heron.tori.cloud>, where it is an example run by
+[Tori](https://tori.host/).
+
+## Use it
+
+```
+GET /<width>x<height>.svg
+GET /<width>x<height>.svg?bg=<hex>&fg=<hex>
+```
+
+- Width and height are whole numbers from 1 to 4000, without leading zeros.
+- `bg` is the background and `fg` the text, each exactly 3 or 6 hex digits,
+  without `#`. Both are optional.
+- Any other size, colour or parameter is a `400` with a fixed sentence.
+- An image never changes, so it is sent with
+  `Cache-Control: public, max-age=31536000, immutable`.
+
+The image says its own size and nothing else. There is no parameter for text,
+and no part of the address is copied into an image or an error: the text is
+built from the two numbers, the colours from two strings that match a strict
+pattern. Otherwise anyone could write an address that serves their words, or
+their markup, from this domain.
 
 ## Deploy your own
 
-With Node.js installed, from this directory:
+With Node.js installed:
 
 ```sh
+git clone https://github.com/tori-host/examples
+cd examples/misty-heron
 npx tori.host
 ```
 
@@ -21,14 +45,18 @@ that name to `tori.json`; later runs update the same service.
 `npx tori.host deploy build-log` prints the build log of the latest deploy,
 and `npx tori.host logs` what the server printed.
 
-## What it shows
+When nobody visits for a while the server naps, and the next request wakes
+it. That request takes longer than the ones after it; an image a browser or a
+cache already holds is not asked for again.
 
-- `GET /` is drawn on every request; `GET /api/bird-of-the-day` is the same
-  answer as JSON.
-- The bird depends on the UTC date only, so every copy of the server gives the
-  same answer, after a restart too.
-- When nobody visits for a while the server naps, and the next request wakes
-  it. That request takes longer than the ones after it.
+## How it is put together
+
+- `placeholder.js` reads the size and the colours and draws the SVG, with no
+  server around it, so its tests need none.
+- `server.js` is the Express app: the page at `/`, the images, `/healthz`,
+  and the stylesheet and icon from `public/`. Every answer carries a strict
+  `Content-Security-Policy`, which covers an SVG opened on its own too,
+  `X-Content-Type-Options: nosniff` and `X-Robots-Tag: noindex`.
 
 ## Run it
 

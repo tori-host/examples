@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{title}} — copper owl, a PHP server on Tori</title>
+    <meta name="description" content="An example PHP server run by Tori, built on FrankenPHP without a Dockerfile, in Prague, EU: an invoice form that draws a print-ready invoice." />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body data-example="copper-owl" class="view-{{view}}">
+    <main>
+      <header class="screen-only">
+        <img src="/favicon.svg" alt="" width="36" height="36" />
+        <h1>copper owl</h1>
+        <span class="tag">PHP server</span>
+      </header>
+      <p class="lead screen-only">
+        An invoice, ready to print. Fill in the form and the server draws the invoice, with every line, the VAT for
+        each rate and the total worked out in whole cents. Nothing you type is stored or logged.
+      </p>
+
+      {{main}}
+
+      <div class="screen-only">
+        <h2>How it runs</h2>
+        <ul>
+          <li>Plain PHP, no framework and no dependencies. There is no Dockerfile: Tori sees <code>index.php</code>,
+            builds an image on FrankenPHP and runs it.</li>
+          <li>Every request goes to <code>index.php</code>, which answers the form, the invoice and the stylesheet.
+            Nothing else in the directory is served.</li>
+          <li>Prices become whole minor units and quantities whole thousandths as they are read, so no sum on the
+            invoice ever passes through a floating-point number.</li>
+          <li>An invoice is drawn for the browser that posted the form, and only for a form posted from this page. A
+            link cannot show one.</li>
+        </ul>
+
+        <h2>Deploy your own</h2>
+        <p>With Node.js installed (the CLI runs on it; the build runs on Tori):</p>
+        <pre><code>git clone https://github.com/tori-host/examples
+cd examples/copper-owl
+npx tori.host</code></pre>
+        <p>The first run creates a service under a new name of its own and writes it to <code>tori.json</code>, so
+          that the next run updates the same service.</p>
+
+        <footer>
+          <p>This is an example run by <a href="https://tori.host/">Tori</a>, in Prague, EU. The source is on
+            <a href="https://github.com/tori-host/examples/tree/main/copper-owl">GitHub</a>.</p>
+        </footer>
+      </div>
+    </main>
+  </body>
+</html>

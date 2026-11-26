@@ -1,0 +1,20 @@
+---
+import { getCollection } from 'astro:content'
+import Base from '../../layouts/Base.astro'
+import { byTag } from '../../journal.mjs'
+
+const tags = byTag(await getCollection('posts'))
+---
+
+<Base title="Tags" description="Every tag in the journal, and how many trips carry it.">
+  <h1 class="post-title">Tags</h1>
+  <ul class="tag-index">
+    {
+      [...tags].map(([tag, posts]) => (
+        <li>
+          <a class="tag" href={`/tags/${tag}/`}>{tag}</a> {posts.length} {posts.length === 1 ? 'trip' : 'trips'}
+        </li>
+      ))
+    }
+  </ul>
+</Base>

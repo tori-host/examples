@@ -1,0 +1,44 @@
+# How FrankenPHP serves copper owl on Tori.
+#
+# Railpack, which builds a PHP app that has no Dockerfile, puts the app in
+# /app and runs FrankenPHP with a Caddyfile of its own, unless the app has one
+# at its root: then it uses this one. Its own serves every file under /app as
+# it is, and runs any .php file that is asked for by name, so src/, tests/
+# and this README would all be on the web. This one sends every request to
+# index.php instead, whatever the path, and serves no file directly.
+#
+# Railpack reads this file as a Go template before Caddy sees it, so it must
+# not contain two opening braces in a row.
+{
+	admin off
+	persist_config off
+	auto_https off
+	frankenphp
+}
+
+# Tori runs a service on port 8080 and says so in PORT.
+:{$PORT:8080} {
+	root * /app
+	route {
+		# The largest form the page can send is about 30 kB. A larger body is
+		# refused here, before PHP reads any of it.
+		request_body {
+			max_size 64KB
+		}
+		rewrite * /index.php
+		php
+	}
+	# What Caddy itself refuses, such as that body, never reaches index.php,
+	# so it gets index.php's headers here.
+	handle_errors {
+		header {
+			Content-Security-Policy "default-src 'none'; frame-ancestors 'none'"
+			X-Content-Type-Options nosniff
+			Referrer-Policy same-origin
+			X-Robots-Tag noindex
+			Cache-Control no-store
+			Content-Type "text/plain; charset=utf-8"
+		}
+		respond "{err.status_code} {err.status_text}"
+	}
+}

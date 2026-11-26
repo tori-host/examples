@@ -144,3 +144,27 @@ footer {
   color: var(--ink-soft);
   font-size: 0.9rem;
 }
+
+/* misty heron's own. */
+.examples {
+  display: grid;
+  gap: 1.25rem;
+}
+
+figure {
+  margin: 0;
+}
+
+figure img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+}
+
+figcaption {
+  margin-top: 0.35rem;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}

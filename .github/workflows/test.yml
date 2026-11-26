@@ -37,7 +37,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        example: [misty-heron, sunny-tern]
+        example: [misty-heron, sunny-tern, saffron-wren, drift-albatross]
     defaults:
       run: { working-directory: "${{ matrix.example }}" }
     steps:
@@ -48,7 +48,11 @@ jobs:
       # No install scripts: nothing here needs one, and a dependency's
       # install script is the usual way a hijacked release runs its code.
       - run: npm ci --ignore-scripts --no-fund --no-audit
+      # saffron-wren's and drift-albatross's tests build the site first.
       - run: npm test
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+          ASTRO_TELEMETRY_DISABLED: "1"
       # What `npx tori.host` publishes for sunny-tern is what this writes.
       - if: matrix.example == 'sunny-tern'
         run: npm run build && test -s dist/index.html
@@ -121,12 +125,34 @@ jobs:
           for _ in $(seq 30); do curl -sf http://127.0.0.1:8080/ | grep -qF -- "$marker" && exit 0; sleep 1; done
           docker logs app; exit 1
 
+  # Go from its go.mod. The test that compares examples.go with examples.json
+  # reads ../examples.json, so it runs from the checkout, not a copy.
+  steel-swift:
+    runs-on: ubuntu-24.04
+    defaults:
+      run: { working-directory: steel-swift }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
+        with: { go-version-file: steel-swift/go.mod, cache: false }
+      - run: test -z "$(gofmt -l .)" && go vet ./... && go test ./...
+
+  # On the PHP and the FrankenPHP that Tori's build uses (the image in
+  # copper-owl/tests/frankenphp, which Dependabot moves).
+  copper-owl:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - run: copper-owl/tests/frankenphp.sh
+
   # The one check branch protection requires, so a job added above is
   # required without anyone editing the protection.
   all:
     name: all tests
     if: always()
-    needs: [manifest, node, mossy-starling, entry-guards, amber-ibis, crimson-finch]
+    needs: [manifest, node, mossy-starling, entry-guards, amber-ibis, crimson-finch, steel-swift, copper-owl]
     runs-on: ubuntu-24.04
     steps:
       - run: echo "$NEEDS" | jq -e 'to_entries | all(.value.result == "success")'

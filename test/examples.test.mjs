@@ -16,7 +16,7 @@ const root = fileURLToPath(new URL('..', import.meta.url))
 const manifest = JSON.parse(readFileSync(join(root, 'examples.json'), 'utf8'))
 
 /** What a visitor's own machine adds to a checkout. None of it is published. */
-const LOCAL = new Set(['.git', 'node_modules', 'dist', 'tori.json', '.venv', '__pycache__', '.pytest_cache'])
+const LOCAL = new Set(['.git', 'node_modules', 'dist', '.next', '.astro', 'vendor', 'tori.json', '.venv', '__pycache__', '.pytest_cache'])
 
 function filesUnder(dir, skip = LOCAL) {
   const out = []

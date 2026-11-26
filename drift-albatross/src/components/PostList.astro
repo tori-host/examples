@@ -1,0 +1,21 @@
+---
+import { isoDate, longDate } from '../journal.mjs'
+
+const { posts } = Astro.props
+---
+
+<ul class="posts">
+  {
+    posts.map((post) => (
+      <li class="card">
+        <h2>
+          <a href={`/posts/${post.id}/`}>{post.data.title}</a>
+        </h2>
+        <p class="meta">
+          <time datetime={isoDate(post.data.date)}>{longDate(post.data.date)}</time> · {post.data.place}
+        </p>
+        <p>{post.data.summary}</p>
+      </li>
+    ))
+  }
+</ul>
