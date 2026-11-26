@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        dir: [misty-heron, mossy-starling, sunny-tern, .github/ci/cli]
+        dir: [misty-heron, mossy-starling, sunny-tern, saffron-wren, drift-albatross, .github/ci/cli]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { persist-credentials: false }

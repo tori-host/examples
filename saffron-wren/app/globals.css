@@ -1,0 +1,287 @@
+/* The look every Tori example shares: paper, ink and one loud red. Each example carries its own copy, so that each directory is a whole project on its own. */
+:root {
+  --paper: #f1efe9;
+  --washi: #faf5ea;
+  --frame: #e8e5dd;
+  --ink: #162028;
+  --ink-soft: #46525d;
+  --vermilion-deep: #bf2f1c;
+  --pink: #f8c5c6;
+  --sky-deep: #2a5dc2;
+  --sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  line-height: 1.5;
+}
+
+main {
+  max-width: 34rem;
+  margin: 0 auto;
+  padding: 2.5rem 1rem 3rem;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.6rem;
+  letter-spacing: -0.03em;
+}
+
+h2 {
+  margin: 2rem 0 0.5rem;
+  font-size: 1.1rem;
+}
+
+.tag {
+  margin-left: auto;
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+  background: var(--pink);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.lead {
+  margin: 1.25rem 0 0;
+  color: var(--ink-soft);
+  font-size: 1.05rem;
+}
+
+.card {
+  margin-top: 1.25rem;
+  padding: 1rem 1.25rem;
+  border-radius: 1rem;
+  background: var(--frame);
+}
+
+.card > :first-child {
+  margin-top: 0;
+}
+
+.card > :last-child {
+  margin-bottom: 0;
+}
+
+pre {
+  overflow-x: auto;
+  margin: 0.75rem 0 0;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--mono);
+  font-size: 0.85rem;
+}
+
+code {
+  font-family: var(--mono);
+  font-size: 0.9em;
+}
+
+pre code {
+  font-size: inherit;
+}
+
+ul {
+  padding-left: 1.25rem;
+}
+
+button {
+  min-height: 2.75rem;
+  padding: 0.35rem 1rem;
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  background: var(--washi);
+  color: var(--ink);
+  font: inherit;
+  font-family: var(--mono);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #fff;
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid var(--sky-deep);
+  outline-offset: 2px;
+}
+
+a {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.notice {
+  min-height: 1.5rem;
+  color: var(--vermilion-deep);
+  font-weight: 500;
+}
+
+footer {
+  margin-top: 2.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--ink);
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+
+/* saffron wren's own: the recipe list, the servings control and the ingredient table. */
+h1 a {
+  font-weight: inherit;
+  text-decoration: none;
+}
+
+h3 {
+  margin: 1.5rem 0 0.5rem;
+  font-size: 1rem;
+}
+
+.card h3 {
+  margin-top: 1rem;
+}
+
+.recipes {
+  margin: 1.25rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.recipes li {
+  margin-top: 0.75rem;
+  padding: 0.9rem 1.25rem;
+  border-radius: 1rem;
+  background: var(--frame);
+}
+
+.recipes p {
+  margin: 0.25rem 0 0;
+  color: var(--ink-soft);
+}
+
+.meta {
+  display: block;
+  color: var(--ink-soft);
+  font-family: var(--mono);
+  font-size: 0.8rem;
+}
+
+.crumbs {
+  margin: 1.5rem 0 0;
+  font-size: 0.9rem;
+}
+
+.title {
+  margin-top: 0.5rem;
+  font-size: 1.4rem;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stepper,
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stepper button {
+  min-width: 2.75rem;
+  padding: 0.35rem 0;
+}
+
+.stepper output {
+  min-width: 6.5rem;
+  text-align: center;
+  font-family: var(--mono);
+  font-weight: 700;
+}
+
+.toggle {
+  gap: 0;
+}
+
+.toggle button:first-child {
+  border-radius: 999px 0 0 999px;
+}
+
+.toggle button:last-child {
+  border-left: 0;
+  border-radius: 0 999px 999px 0;
+}
+
+.toggle button[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.ingredients {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ingredients td {
+  padding: 0.35rem 0;
+  border-top: 1px solid var(--paper);
+  vertical-align: top;
+}
+
+.ingredients .amount {
+  width: 40%;
+  padding-right: 1rem;
+  font-family: var(--mono);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.oven {
+  font-weight: 700;
+}
+
+.note {
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+}
+
+button.link {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: var(--sans);
+  text-decoration: underline;
+}
+
+.steps li {
+  margin-top: 0.4rem;
+}

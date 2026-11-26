@@ -14,7 +14,7 @@
 // a pipeline that forgot the database does not pass by testing nothing.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, writeFileSync } from 'node:fs'
+import { copyFileSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -39,7 +39,7 @@ const connect = async () => {
 async function freshClient() {
   const client = new pg.Client(connectionConfig(url))
   await client.connect()
-  await client.query('DROP TABLE IF EXISTS sightings, schema_migrations')
+  await client.query('DROP TABLE IF EXISTS sightings, votes, schema_migrations')
   return client
 }
 
@@ -78,13 +78,36 @@ test('the migration creates the table once, and a second run applies nothing', {
 test('a migration that fails leaves nothing behind', { skip }, async () => {
   const client = await freshClient()
   const dir = mkdtempSync(join(tmpdir(), 'mossy-starling-'))
-  writeFileSync(join(dir, '001-good.sql'), 'CREATE TABLE sightings (bird_id text PRIMARY KEY, count bigint NOT NULL)')
+  writeFileSync(join(dir, '001-good.sql'), 'CREATE TABLE votes (option_id text PRIMARY KEY, count bigint NOT NULL)')
   writeFileSync(join(dir, '002-bad.sql'), 'ALTER TABLE no_such_table ADD COLUMN x int')
   try {
     await assert.rejects(migrate(client, pathToFileURL(`${dir}/`)), /migration 002-bad\.sql failed/)
-    const { rows } = await client.query("SELECT to_regclass('public.sightings') IS NULL AS gone, to_regclass('public.schema_migrations') IS NULL AS untracked")
+    const { rows } = await client.query("SELECT to_regclass('public.votes') IS NULL AS gone, to_regclass('public.schema_migrations') IS NULL AS untracked")
     assert.deepEqual(rows[0], { gone: true, untracked: true })
   } finally {
+    await client.end()
+  }
+})
+
+// The path the live database takes: it has applied 001, and holds the old
+// example's rows. The release of this version has to end in the same schema
+// as a database that starts empty.
+test('a database that has applied only the first migration is brought up to date', { skip }, async () => {
+  const client = await freshClient()
+  const first = mkdtempSync(join(tmpdir(), 'mossy-starling-'))
+  copyFileSync(new URL('./migrations/001-sightings.sql', import.meta.url), join(first, '001-sightings.sql'))
+  const db = openDatabase(url)
+  try {
+    assert.deepEqual(await migrate(client, pathToFileURL(`${first}/`)), ['001-sightings.sql'])
+    await client.query("INSERT INTO sightings (bird_id, count) VALUES ('great-tit', 5)")
+    assert.equal(await db.state(), 'unmigrated')
+    assert.deepEqual(await migrate(client), migrationFiles().slice(1))
+    const { rows } = await client.query("SELECT to_regclass('public.sightings') IS NULL AS dropped")
+    assert.equal(rows[0].dropped, true)
+    assert.equal(await db.state(), 'ready')
+    assert.equal(await db.vote('soup'), 1)
+  } finally {
+    await db.close()
     await client.end()
   }
 })
@@ -109,13 +132,32 @@ test('the server reads states and counts through the same queries it runs live',
     await migrate(client)
     assert.equal(await db.state(), 'ready')
     assert.equal((await db.counts()).size, 0)
-    assert.equal(await db.record('great-tit'), 1)
-    assert.equal(await db.record('great-tit'), 2)
-    const counts = await db.counts()
-    assert.equal(counts.get('great-tit').count, 2)
-    assert.match(counts.get('great-tit').firstSeen, /^\d{4}-\d{2}-\d{2}T/)
-    await client.query('UPDATE sightings SET count = $1', [MAX_COUNT])
-    assert.equal(await db.record('great-tit'), MAX_COUNT)
+    assert.equal(await db.vote('ramen'), 1)
+    assert.equal(await db.vote('ramen'), 2)
+    assert.equal(await db.vote('pizza'), 1)
+    assert.deepEqual(Object.fromEntries(await db.counts()), { ramen: 2, pizza: 1 })
+    await client.query('UPDATE votes SET count = $1', [MAX_COUNT])
+    assert.equal(await db.vote('ramen'), MAX_COUNT)
+  } finally {
+    await db.close()
+    await client.end()
+  }
+})
+
+// The poll is today's, in Prague: a vote from yesterday is kept and not shown.
+test("yesterday's votes are not today's", { skip }, async () => {
+  const client = await freshClient()
+  await migrate(client)
+  const db = openDatabase(url)
+  try {
+    await client.query(
+      "INSERT INTO votes (day, option_id, count) VALUES ((now() AT TIME ZONE 'Europe/Prague')::date - 1, 'burger', 40)",
+    )
+    assert.equal((await db.counts()).size, 0)
+    assert.equal(await db.vote('burger'), 1)
+    assert.deepEqual(Object.fromEntries(await db.counts()), { burger: 1 })
+    const { rows } = await client.query("SELECT count(*)::int AS days FROM votes WHERE option_id = 'burger'")
+    assert.equal(rows[0].days, 2)
   } finally {
     await db.close()
     await client.end()
@@ -153,7 +195,7 @@ test('a query stuck behind a lock fails within the deadline, and the next one ru
   const db = openDatabase(url, { timeoutMs: 500 })
   try {
     await client.query('BEGIN')
-    await client.query('LOCK TABLE sightings IN ACCESS EXCLUSIVE MODE')
+    await client.query('LOCK TABLE votes IN ACCESS EXCLUSIVE MODE')
     const started = Date.now()
     await assert.rejects(db.counts())
     assert.ok(Date.now() - started < 3_000, `gave up after ${Date.now() - started} ms`)

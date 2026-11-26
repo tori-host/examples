@@ -1,0 +1,31 @@
+---
+import { getCollection, render } from 'astro:content'
+import Base from '../../layouts/Base.astro'
+import Tags from '../../components/Tags.astro'
+import { isoDate, longDate } from '../../journal.mjs'
+
+// One page per post, written at build time. A slug that is not a post has
+// no page: the paths are exactly the files in src/content/posts.
+export async function getStaticPaths() {
+  const posts = await getCollection('posts')
+  return posts.map((post) => ({ params: { slug: post.id }, props: { post } }))
+}
+
+const { post } = Astro.props
+const { Content } = await render(post)
+---
+
+<Base title={post.data.title} description={post.data.summary}>
+  <article>
+    <h1 class="post-title">{post.data.title}</h1>
+    <p class="meta">
+      <time datetime={isoDate(post.data.date)}>{longDate(post.data.date)}</time> · {post.data.place}
+    </p>
+    <p class="lead">{post.data.summary}</p>
+    <div class="prose">
+      <Content />
+    </div>
+    <Tags tags={post.data.tags} />
+  </article>
+  <p><a href="/">← All trips</a></p>
+</Base>

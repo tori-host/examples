@@ -1,0 +1,19 @@
+{
+  "name": "saffron-wren",
+  "version": "1.0.0",
+  "private": true,
+  "description": "An example Next.js service run by Tori, built from source without a Dockerfile, at saffron-wren.tori.cloud",
+  "type": "module",
+  "engines": { "node": ">=20.9.0" },
+  "scripts": {
+    "dev": "NEXT_TELEMETRY_DISABLED=1 next dev --port ${PORT:-8080}",
+    "build": "NEXT_TELEMETRY_DISABLED=1 next build",
+    "start": "NEXT_TELEMETRY_DISABLED=1 next start --port ${PORT:-8080}",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "next": "^16.4.6",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  }
+}

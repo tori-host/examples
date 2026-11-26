@@ -1,0 +1,442 @@
+/* The look every Tori example shares: paper, ink and one loud red. Each example carries its own copy, so that each directory is a whole project on its own. */
+:root {
+  --paper: #f1efe9;
+  --washi: #faf5ea;
+  --frame: #e8e5dd;
+  --ink: #162028;
+  --ink-soft: #46525d;
+  --vermilion-deep: #bf2f1c;
+  --pink: #f8c5c6;
+  --sky-deep: #2a5dc2;
+  --sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  line-height: 1.5;
+}
+
+main {
+  max-width: 34rem;
+  margin: 0 auto;
+  padding: 2.5rem 1rem 3rem;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.6rem;
+  letter-spacing: -0.03em;
+}
+
+h2 {
+  margin: 2rem 0 0.5rem;
+  font-size: 1.1rem;
+}
+
+.tag {
+  margin-left: auto;
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+  background: var(--pink);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.lead {
+  margin: 1.25rem 0 0;
+  color: var(--ink-soft);
+  font-size: 1.05rem;
+}
+
+.card {
+  margin-top: 1.25rem;
+  padding: 1rem 1.25rem;
+  border-radius: 1rem;
+  background: var(--frame);
+}
+
+.card > :first-child {
+  margin-top: 0;
+}
+
+.card > :last-child {
+  margin-bottom: 0;
+}
+
+pre {
+  overflow-x: auto;
+  margin: 0.75rem 0 0;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--mono);
+  font-size: 0.85rem;
+}
+
+code {
+  font-family: var(--mono);
+  font-size: 0.9em;
+}
+
+pre code {
+  font-size: inherit;
+}
+
+ul {
+  padding-left: 1.25rem;
+}
+
+button {
+  min-height: 2.75rem;
+  padding: 0.35rem 1rem;
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  background: var(--washi);
+  color: var(--ink);
+  font: inherit;
+  font-family: var(--mono);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #fff;
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid var(--sky-deep);
+  outline-offset: 2px;
+}
+
+a {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.notice {
+  min-height: 1.5rem;
+  color: var(--vermilion-deep);
+  font-weight: 500;
+}
+
+footer {
+  margin-top: 2.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--ink);
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+
+/* copper owl's own: the form, the invoice, and the invoice on paper. */
+
+main {
+  max-width: 46rem;
+}
+
+fieldset {
+  border: 0;
+}
+
+legend {
+  padding: 0;
+  font-weight: 700;
+}
+
+label {
+  display: block;
+  margin-top: 0.6rem;
+  font-size: 0.9rem;
+}
+
+input,
+select,
+textarea {
+  display: block;
+  width: 100%;
+  margin-top: 0.2rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--ink-soft);
+  border-radius: 0.5rem;
+  background: var(--washi);
+  color: var(--ink);
+  font: inherit;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid var(--sky-deep);
+  outline-offset: 1px;
+}
+
+[aria-invalid='true'] {
+  border: 2px solid var(--vermilion-deep);
+}
+
+.hint {
+  margin: 0.25rem 0 0;
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+}
+
+.lines {
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+.line {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0 0.6rem;
+  padding: 0.4rem 0 0.6rem;
+  border-bottom: 1px solid var(--paper);
+}
+
+.line .description {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 40rem) {
+  .line {
+    grid-template-columns: 3fr 1fr 1.3fr 1fr;
+  }
+
+  .line .description {
+    grid-column: auto;
+  }
+}
+
+.errors {
+  border: 2px solid var(--vermilion-deep);
+  background: var(--washi);
+}
+
+.errors h2 {
+  margin-top: 0;
+  color: var(--vermilion-deep);
+}
+
+.toolbar {
+  margin-top: 1.25rem;
+}
+
+.toolbar form {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* The invoice: a sheet of paper on the screen, the page itself in print. */
+.invoice {
+  position: relative;
+  overflow: hidden;
+  margin-top: 1.25rem;
+  padding: 1.5rem;
+  border: 1px solid var(--frame);
+  background: #fff;
+  /* What a visitor typed may be one long word; it wraps rather than pushing the sums off the page. */
+  overflow-wrap: anywhere;
+}
+
+.invoice h2 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.invoice-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.invoice dl {
+  margin: 0;
+}
+
+.invoice dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.invoice dt {
+  color: var(--ink-soft);
+}
+
+.invoice dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.parties {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.party h2 {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.party p {
+  margin: 0.25rem 0 0;
+}
+
+table {
+  width: 100%;
+  margin-top: 1.25rem;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+th,
+td {
+  padding: 0.35rem 0.4rem;
+  border-bottom: 1px solid var(--frame);
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+
+.num {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.vat-table {
+  width: auto;
+  margin-left: auto;
+}
+
+.invoice .totals {
+  width: min(100%, 20rem);
+  margin: 1rem 0 0 auto;
+}
+
+.totals .due {
+  margin-top: 0.3rem;
+  padding-top: 0.3rem;
+  border-top: 2px solid var(--ink);
+  font-weight: 700;
+}
+
+/*
+ * The sample mark. It is text in the page, outside every field a visitor
+ * fills in, so no input can remove it; it is drawn in ink and borders rather
+ * than backgrounds, which browsers leave out of print by default.
+ */
+.sample {
+  margin: 0 0 1rem;
+  padding: 0.4rem 0.6rem;
+  border: 2px dashed var(--vermilion-deep);
+  color: var(--vermilion-deep);
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.sample-foot {
+  margin: 1.5rem 0 0;
+}
+
+.watermark {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  margin: 0;
+  transform: translate(-50%, -50%) rotate(-30deg);
+  color: rgba(191, 47, 28, 0.12);
+  font-family: var(--mono);
+  font-size: 6rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  pointer-events: none;
+  user-select: none;
+}
+
+@media (max-width: 30rem) {
+  .parties {
+    grid-template-columns: 1fr;
+  }
+
+  .invoice {
+    padding: 1rem;
+  }
+}
+
+@media print {
+  @page {
+    margin: 15mm;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  main {
+    max-width: none;
+    padding: 0;
+  }
+
+  .screen-only {
+    display: none !important;
+  }
+
+  .invoice {
+    position: static;
+    margin: 0;
+    padding: 0 0 3rem;
+    border: 0;
+    overflow: visible;
+  }
+
+  /* Fixed elements are drawn on every printed page, so a long invoice is marked on each sheet. */
+  .watermark {
+    position: fixed;
+    top: 45%;
+  }
+
+  .sample-foot {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    margin: 0;
+    background: #fff;
+  }
+
+  tr {
+    break-inside: avoid;
+  }
+}

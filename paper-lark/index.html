@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>paper lark — a static site on Tori</title>
-    <meta name="description" content="An example static site run by Tori: three files, no build step, served from Prague, EU." />
+    <title>Lark Café — a static site on Tori</title>
+    <meta name="description" content="The page of Lark Café, a café that does not exist: an example static site run by Tori, served from Prague, EU." />
     <meta name="robots" content="noindex" />
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <link rel="stylesheet" href="style.css" />
@@ -13,38 +13,81 @@
     <main>
       <header>
         <img src="favicon.svg" alt="" width="36" height="36" />
-        <h1>paper lark</h1>
+        <h1>Lark Café</h1>
         <span class="tag">static site</span>
       </header>
       <p class="lead">
-        This page is three files: <code>index.html</code>, <code>style.css</code> and <code>favicon.svg</code>. There is
-        no build step and no server of its own.
+        Coffee, bread from our own oven and a soup that changes every day. A small room with eleven chairs and a window
+        seat everybody wants.
       </p>
+      <!-- Said once, near the top: a visitor who believes this page would walk to an address that does not exist. -->
+      <p class="aside">Lark Café is made up. This page is an example of a static site, not a real café.</p>
 
+      <h2 id="menu">Menu</h2>
       <div class="card">
-        <h2>How it is served</h2>
-        <ul>
-          <li>Tori stores the files and serves them as they are, over HTTPS, at this address.</li>
-          <li>Nothing runs for it, so it never naps: the first request of the day is as quick as the next one.</li>
-          <li>A deploy is reported live once this address serves its files, and the previous one can be rolled back.</li>
-        </ul>
+        <h3>Coffee and tea</h3>
+        <dl class="menu">
+          <div><dt>Espresso</dt><dd>55 CZK</dd></div>
+          <div><dt>Flat white</dt><dd>75 CZK</dd></div>
+          <div><dt>Filter coffee, refilled once</dt><dd>65 CZK</dd></div>
+          <div><dt>Black or green tea, a pot</dt><dd>60 CZK</dd></div>
+          <div><dt>Hot chocolate</dt><dd>70 CZK</dd></div>
+        </dl>
+        <h3>From the oven</h3>
+        <dl class="menu">
+          <div><dt>Butter croissant</dt><dd>45 CZK</dd></div>
+          <div><dt>Cinnamon bun</dt><dd>55 CZK</dd></div>
+          <div><dt>Sourdough toast with butter and jam</dt><dd>85 CZK</dd></div>
+          <div><dt>Apple cake, a slice</dt><dd>65 CZK</dd></div>
+        </dl>
+        <h3>Lunch, 11:30 to 14:30</h3>
+        <dl class="menu">
+          <div><dt>Soup of the day with bread</dt><dd>95 CZK</dd></div>
+          <div><dt>Cheese and pickle sandwich</dt><dd>140 CZK</dd></div>
+          <div><dt>Lentil salad with roast vegetables</dt><dd>165 CZK</dd></div>
+        </dl>
+        <p class="small">Oat milk at no extra cost. Ask about allergens; we know what is in everything we bake.</p>
       </div>
 
-      <h2>Deploy your own</h2>
-      <p>With Node.js installed, from the directory that holds the site:</p>
-      <pre><code>git clone https://github.com/tori-host/examples
-cd examples/paper-lark
-npx tori.host</code></pre>
+      <h2 id="hours">Opening hours</h2>
+      <table class="hours">
+        <tbody>
+          <tr><th scope="row">Monday</th><td>closed</td></tr>
+          <tr><th scope="row">Tuesday to Friday</th><td>7:30 – 18:00</td></tr>
+          <tr><th scope="row">Saturday</th><td>9:00 – 17:00</td></tr>
+          <tr><th scope="row">Sunday</th><td>9:00 – 14:00</td></tr>
+        </tbody>
+      </table>
+      <p class="small">On public holidays we keep Sunday hours.</p>
+
+      <h2 id="story">Our story</h2>
       <p>
-        The first run signs you in and creates a site under a new name of its own, then writes that name to
-        <code>tori.json</code>, so that the next run updates the same site.
+        Lark Café started as a bread stall on a Saturday market. People kept asking where they could sit down with a
+        loaf still warm, so in the end we found a room for them: a former bookbinder's shop, which explains the shelves.
+        We still bake every morning before we open, and we still close on Mondays, because that is the day the oven
+        rests.
       </p>
+
+      <h2 id="visit">Visit us</h2>
+      <div class="card">
+        <address>
+          Lark Café<br />
+          7 Inkwell Lane<br />
+          Papertown
+        </address>
+        <p class="small">We take no bookings, so there is no phone and no email: come by, and the coffee is ready in a minute.</p>
+      </div>
 
       <footer>
         <p>
-          This is an example run by <a href="https://tori.host/">Tori</a>, in Prague, EU. The source is on
-          <a href="https://github.com/tori-host/examples/tree/main/paper-lark">GitHub</a>.
+          This page is an example run by <a href="https://tori.host/">Tori</a>, in Prague, EU: three files,
+          <code>index.html</code>, <code>style.css</code> and <code>favicon.svg</code>, with no build step and no server
+          of its own. The source is on
+          <a href="https://github.com/tori-host/examples/tree/main/paper-lark">GitHub</a>. Deploy your own copy:
         </p>
+        <pre><code>git clone https://github.com/tori-host/examples
+cd examples/paper-lark
+npx tori.host</code></pre>
       </footer>
     </main>
   </body>

@@ -5,21 +5,30 @@
   "examples": [
     {
       "name": "paper-lark",
-      "title": "A static site",
+      "title": "A caf\u00e9's landing page",
       "stack": "HTML and CSS, no build step",
       "kind": "static",
       "url": "https://paper-lark.tori.cloud",
       "deploy": ["npx tori.host"],
-      "check": { "path": "/", "contains": "data-example=\"paper-lark\"" }
+      "check": {"path": "/", "contains": "data-example=\"paper-lark\""}
     },
     {
       "name": "sunny-tern",
-      "title": "A single-page app",
-      "stack": "Vite and React, built on your machine",
+      "title": "Split the bill",
+      "stack": "A single-page app in Vite and React, built on your machine",
       "kind": "static",
       "url": "https://sunny-tern.tori.cloud",
       "deploy": ["npm install", "npx tori.host"],
-      "check": { "path": "/about", "contains": "data-example=\"sunny-tern\"" }
+      "check": {"path": "/about", "contains": "data-example=\"sunny-tern\""}
+    },
+    {
+      "name": "drift-albatross",
+      "title": "A travel journal",
+      "stack": "Astro, Markdown posts built into a static site on your machine",
+      "kind": "static",
+      "url": "https://drift-albatross.tori.cloud",
+      "deploy": ["npm install", "npx tori.host"],
+      "check": {"path": "/", "contains": "data-example=\"drift-albatross\""}
     },
     {
       "name": "crimson-finch",
@@ -29,31 +38,61 @@
       "build": "dockerfile",
       "url": "https://crimson-finch.tori.cloud",
       "deploy": ["npx tori.host"],
-      "check": { "path": "/", "contains": "data-bird=" }
+      "check": {"path": "/", "contains": "data-bird="}
     },
     {
       "name": "misty-heron",
-      "title": "An Express server",
+      "title": "Placeholder images",
       "stack": "Node.js and Express, built on Tori without a Dockerfile",
       "kind": "service",
       "build": "detected",
       "url": "https://misty-heron.tori.cloud",
       "deploy": ["npx tori.host"],
-      "check": { "path": "/", "contains": "data-example=\"misty-heron\"" }
+      "check": {"path": "/", "contains": "data-example=\"misty-heron\""}
+    },
+    {
+      "name": "saffron-wren",
+      "title": "Recipes, scaled to your table",
+      "stack": "Next.js, built and run on Tori without a Dockerfile",
+      "kind": "service",
+      "build": "detected",
+      "url": "https://saffron-wren.tori.cloud",
+      "deploy": ["npx tori.host"],
+      "check": {"path": "/", "contains": "data-example=\"saffron-wren\""}
     },
     {
       "name": "amber-ibis",
-      "title": "A FastAPI server",
+      "title": "Czech holidays and working days",
       "stack": "Python and FastAPI, built on Tori without a Dockerfile",
       "kind": "service",
       "build": "detected",
       "url": "https://amber-ibis.tori.cloud",
       "deploy": ["npx tori.host"],
-      "check": { "path": "/", "contains": "data-example=\"amber-ibis\"" }
+      "check": {"path": "/", "contains": "data-example=\"amber-ibis\""}
+    },
+    {
+      "name": "steel-swift",
+      "title": "A status page for the examples",
+      "stack": "Go, standard library only, built on Tori without a Dockerfile",
+      "kind": "service",
+      "build": "detected",
+      "url": "https://steel-swift.tori.cloud",
+      "deploy": ["npx tori.host"],
+      "check": {"path": "/", "contains": "data-example=\"steel-swift\""}
+    },
+    {
+      "name": "copper-owl",
+      "title": "An invoice, ready to print",
+      "stack": "PHP, no framework, served by FrankenPHP and built on Tori without a Dockerfile",
+      "kind": "service",
+      "build": "detected",
+      "url": "https://copper-owl.tori.cloud",
+      "deploy": ["npx tori.host"],
+      "check": {"path": "/", "contains": "data-example=\"copper-owl\""}
     },
     {
       "name": "mossy-starling",
-      "title": "A server with a Postgres database",
+      "title": "A lunch poll",
       "stack": "Node.js with Tori's managed Postgres, migrated by a release command",
       "kind": "service",
       "build": "detected",
@@ -61,7 +100,7 @@
       "release": "node migrate.mjs",
       "url": "https://mossy-starling.tori.cloud",
       "deploy": ["npx tori.host", "npx tori.host db create", "npx tori.host db status   # again, until it says ready", "npx tori.host env list    # again, until DATABASE_URL is listed", "npx tori.host deploy --release \"node migrate.mjs\""],
-      "check": { "path": "/", "contains": "data-database=\"ready\"" }
+      "check": {"path": "/", "contains": "data-database=\"ready\""}
     }
   ]
 }

@@ -3,8 +3,15 @@
 // that needs no database.
 import pg from 'pg'
 
-/** No bird's count goes past this, so a flood of clicks ends at a number that still reads well. */
+/** No option's count goes past this in a day, so a flood of clicks ends at a number that still reads well. */
 export const MAX_COUNT = 999_999
+
+/**
+ * Today, as the poll counts it: the date in Prague, worked out by Postgres,
+ * so every copy of the server agrees on when the day ends, whatever clock or
+ * time zone the container has.
+ */
+const TODAY = "(now() AT TIME ZONE 'Europe/Prague')::date"
 
 /** How long a connection or a query may take before the page gives up on the database. */
 export const DEFAULT_TIMEOUT_MS = 5_000
@@ -88,23 +95,23 @@ export function openDatabase(url = process.env.DATABASE_URL, { timeoutMs = DEFAU
     /** `ready`, or `unmigrated` when the release command has not created the table yet. */
     state: () =>
       transaction(async (client) => {
-        const { rows } = await client.query("SELECT to_regclass('public.sightings') IS NOT NULL AS ready")
+        const { rows } = await client.query("SELECT to_regclass('public.votes') IS NOT NULL AS ready")
         return rows[0].ready ? 'ready' : 'unmigrated'
       }),
-    /** Every bird that has a row: id → { count, firstSeen }. */
+    /** Today's votes: option id → count, for every option that has one. */
     counts: () =>
       transaction(async (client) => {
-        const { rows } = await client.query('SELECT bird_id, count, first_seen FROM sightings')
-        return new Map(rows.map((row) => [row.bird_id, { count: Number(row.count), firstSeen: row.first_seen.toISOString() }]))
+        const { rows } = await client.query(`SELECT option_id, count FROM votes WHERE day = ${TODAY}`)
+        return new Map(rows.map((row) => [row.option_id, Number(row.count)]))
       }),
-    /** One more sighting of a bird. Returns its new count. */
-    record: (birdId) =>
+    /** One more vote for an option today. Returns its new count. */
+    vote: (optionId) =>
       transaction(async (client) => {
         const { rows } = await client.query(
-          `INSERT INTO sightings (bird_id, count) VALUES ($1, 1)
-           ON CONFLICT (bird_id) DO UPDATE SET count = LEAST(sightings.count + 1, $2), last_seen = now()
+          `INSERT INTO votes (day, option_id, count) VALUES (${TODAY}, $1, 1)
+           ON CONFLICT (day, option_id) DO UPDATE SET count = LEAST(votes.count + 1, $2), last_vote = now()
            RETURNING count`,
-          [birdId, MAX_COUNT],
+          [optionId, MAX_COUNT],
         )
         return Number(rows[0].count)
       }),

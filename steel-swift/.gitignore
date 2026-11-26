@@ -1,0 +1,5 @@
+# Written by the first `npx tori.host` in this directory: it names the app
+# the directory deploys to, and that is the deployer's own.
+tori.json
+# The binary a local `go build` leaves here.
+/steel-swift

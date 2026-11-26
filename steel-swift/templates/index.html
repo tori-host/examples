@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>steel swift — a Go service on Tori</title>
+    <meta name="description" content="An example Go service run by Tori, built from source without a Dockerfile, in Prague, EU: the status of the other examples." />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body data-example="steel-swift">
+    <main>
+      <header>
+        <img src="/favicon.svg" alt="" width="36" height="36" />
+        <h1>steel swift</h1>
+        <span class="tag">Go service</span>
+      </header>
+      <p class="lead">
+        {{.Up}} of {{.Total}} Tori examples are up. Checked at
+        <time datetime="{{.CheckedAt.UTC.Format "2006-01-02T15:04:05Z"}}">{{.CheckedAt.UTC.Format "15:04:05"}} UTC</time>,
+        {{.AgeSeconds}} s ago.
+      </p>
+
+      <ul class="status">
+        {{- range .Examples}}
+        <li class="{{if .Up}}up{{else}}down{{end}}">
+          <span class="state">{{if .Up}}up{{else}}down{{end}}</span>
+          <a href="{{.Page}}">{{.Name}}</a>
+          <span class="detail">{{if .Up}}{{.Latency}}{{else}}{{.Problem}}{{end}}</span>
+          <svg class="spark" viewBox="0 0 {{$.SparkW}} {{$.SparkH}}" width="{{$.SparkW}}" height="{{$.SparkH}}" role="img" aria-label="Latency of the rounds kept">
+            {{- if .Spark.Points}}<polyline points="{{.Spark.Points}}" />{{end}}
+            {{- range .Spark.Downs}}<rect x="{{.}}" y="{{$.DownY}}" width="3" height="6" />{{end -}}
+          </svg>
+          <span class="uptime">{{.Uptime}}% up</span>
+        </li>
+        {{- end}}
+      </ul>
+      <p>The same as JSON: <a href="/api/status"><code>/api/status</code></a>.</p>
+
+      <h2>How it checks</h2>
+      <ul>
+        <li>
+          The list of examples is compiled into the server. Each check is one <code>GET</code> of a fixed address,
+          looking for the marker the example's page carries, with a 5 s limit. A redirect counts as down and is not
+          followed.
+        </li>
+        <li>
+          There is no timer. A visit runs a round of checks, all at once, when the last results are more than
+          {{.MaxAge}} s old; otherwise it shows those. Visits that arrive during a round wait for it, so the examples are
+          checked at most once a minute, however busy this page is.
+        </li>
+        <li>
+          The history is kept in memory only: up to the last {{.Keep}} rounds since this copy started, at
+          <time datetime="{{.StartedAt.UTC.Format "2006-01-02T15:04:05Z"}}">{{.StartedAt.UTC.Format "2006-01-02 15:04"}} UTC</time>
+          ({{.Rounds}} so far). It is lost when the server restarts, and when nobody visits for a while the server naps,
+          which is a restart.
+        </li>
+      </ul>
+
+      <h2>Deploy your own</h2>
+      <p>With Node.js installed:</p>
+      <pre><code>git clone https://github.com/tori-host/examples
+cd examples/steel-swift
+npx tori.host</code></pre>
+      <p>
+        There is no Dockerfile. Tori finds <code>go.mod</code> beside Go code, builds the binary from the source and
+        runs it, so Go does not need to be installed on your machine. The first run creates a service under a new name
+        of its own and writes it to <code>tori.json</code>, so that the next run updates the same service.
+      </p>
+
+      <footer>
+        <p>
+          This is an example run by <a href="https://tori.host/">Tori</a>, in Prague, EU. The source is on
+          <a href="https://github.com/tori-host/examples/tree/main/steel-swift">GitHub</a>.
+        </p>
+      </footer>
+    </main>
+  </body>
+</html>

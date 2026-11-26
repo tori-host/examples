@@ -1,0 +1,43 @@
+---
+import '../styles/style.css'
+import { FOOTER, NAME, ROBOTS, TAGLINE, TITLE } from '../site.mjs'
+
+const { title, description = TAGLINE } = Astro.props
+const pageTitle = title ? `${title} — ${TITLE}` : `${TITLE} — a travel journal on Tori`
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    <Fragment set:html={ROBOTS} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="alternate" type="application/rss+xml" title={TITLE} href="/rss.xml" />
+  </head>
+  <body data-example={NAME}>
+    <main>
+      <header>
+        <a class="home" href="/" aria-label={`${TITLE}, home`}>
+          <svg class="bird" viewBox="0 0 64 24" width="48" height="18" aria-hidden="true">
+            <path d="M2 14 Q16 3 30 12 Q32 9 34 12 Q48 3 62 14 Q48 8 34 15 Q32 18 30 15 Q16 8 2 14 Z" />
+          </svg>
+          <span>{TITLE}</span>
+        </a>
+        <span class="tag">static site</span>
+      </header>
+      <nav aria-label="Journal">
+        <a href="/">Journal</a>
+        <a href="/tags/">Tags</a>
+        <a href="/about/">About</a>
+        <a href="/rss.xml">RSS</a>
+      </nav>
+      <slot />
+      <footer>
+        <p set:html={FOOTER} />
+      </footer>
+    </main>
+  </body>
+</html>

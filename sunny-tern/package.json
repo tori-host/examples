@@ -2,7 +2,7 @@
   "name": "sunny-tern",
   "version": "1.0.0",
   "private": true,
-  "description": "An example single-page app run by Tori: Vite and React, served as a static site at sunny-tern.tori.cloud",
+  "description": "Split the bill: an example single-page app run by Tori, Vite and React, served as a static site at sunny-tern.tori.cloud",
   "type": "module",
   "engines": { "node": "^20.19.0 || >=22.12.0" },
   "scripts": {

@@ -77,6 +77,8 @@ jobs:
         with: { node-version: 22 }
       - run: npm ci --ignore-scripts --no-fund --no-audit && npm run build && test -s dist/index.html
         working-directory: ${{ matrix.example }}
+        env:
+          ASTRO_TELEMETRY_DISABLED: "1"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: dist-${{ matrix.example }}

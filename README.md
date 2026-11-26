@@ -4,14 +4,22 @@ Small apps, each one stack that a coding agent commonly writes, each deployed
 with one command and running for real on [Tori](https://tori.host/). Every one
 is live on `tori.cloud`, where its page says that it is an example run by Tori.
 
-| Example | What it is | Live |
-| --- | --- | --- |
-| [paper-lark](paper-lark) | A static site: HTML and CSS, no build step | <https://paper-lark.tori.cloud> |
-| [sunny-tern](sunny-tern) | A single-page app: Vite and React | <https://sunny-tern.tori.cloud> |
-| [crimson-finch](crimson-finch) | A Node.js server with its own Dockerfile | <https://crimson-finch.tori.cloud> |
-| [misty-heron](misty-heron) | An Express server, built on Tori without a Dockerfile | <https://misty-heron.tori.cloud> |
-| [amber-ibis](amber-ibis) | A FastAPI server, built on Tori without a Dockerfile | <https://amber-ibis.tori.cloud> |
-| [mossy-starling](mossy-starling) | A Node.js server with Tori's managed Postgres | <https://mossy-starling.tori.cloud> |
+| Example | What it is | Stack | Live |
+| --- | --- | --- | --- |
+| [paper-lark](paper-lark) | A café's landing page | HTML and CSS, no build step | <https://paper-lark.tori.cloud> |
+| [sunny-tern](sunny-tern) | Split the bill | Vite and React, a static single-page app | <https://sunny-tern.tori.cloud> |
+| [drift-albatross](drift-albatross) | A travel journal | Astro, Markdown built into a static site | <https://drift-albatross.tori.cloud> |
+| [crimson-finch](crimson-finch) | The bird log on the tori.host homepage | Node.js with its own Dockerfile | <https://crimson-finch.tori.cloud> |
+| [misty-heron](misty-heron) | Placeholder images | Express, built on Tori without a Dockerfile | <https://misty-heron.tori.cloud> |
+| [saffron-wren](saffron-wren) | Recipes, scaled to your table | Next.js, built and run on Tori | <https://saffron-wren.tori.cloud> |
+| [amber-ibis](amber-ibis) | Czech holidays and working days | FastAPI, built on Tori without a Dockerfile | <https://amber-ibis.tori.cloud> |
+| [steel-swift](steel-swift) | A status page for these examples | Go, standard library only | <https://steel-swift.tori.cloud> |
+| [copper-owl](copper-owl) | An invoice, ready to print | PHP on FrankenPHP, no framework | <https://copper-owl.tori.cloud> |
+| [mossy-starling](mossy-starling) | A lunch poll | Node.js with Tori's managed Postgres | <https://mossy-starling.tori.cloud> |
+
+None of them lets one visitor publish anything another visitor sees, and none
+fetches an address a visitor gives it: they are public, on Tori's own domain,
+and stay boring to abuse.
 
 ## Deploy one
 
