@@ -34,6 +34,27 @@ const live = async () => (await api('GET', `/api/apps/${name}/deploys`)).find((d
 
 const run = (command, args) => spawnSync(command, args, { cwd: name, stdio: 'inherit' }).status === 0
 
+// The CLI's own output, shown as it comes and kept to read the refusal.
+function deploy(args) {
+  const res = spawnSync('npx', ['-y', 'tori.host@latest', 'deploy', ...args], { cwd: name, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
+  process.stdout.write(res.stdout ?? '')
+  process.stderr.write(res.stderr ?? '')
+  return { ok: res.status === 0, output: `${res.stdout}${res.stderr}` }
+}
+
+// Refusals that say "not now" rather than "not this": the account has too
+// many deploys going, or asked too fast. Anything else is not retried.
+const BUSY = /rate_limited|too many deploys in flight/
+
+async function deployWithRetries(args) {
+  for (const waitS of [30, 60, 120, null]) {
+    const attempt = deploy(args)
+    if (attempt.ok || !BUSY.test(attempt.output) || waitS === null) return attempt.ok
+    console.log(`${name}: Tori is busy with this account's deploys; again in ${waitS}s`)
+    await new Promise((resolve) => setTimeout(resolve, waitS * 1000))
+  }
+}
+
 const before = await live()
 console.log(`${name}: ${before ?? 'nothing'} is live`)
 
@@ -43,7 +64,7 @@ writeFileSync(`${name}/tori.json`, `${JSON.stringify({ slug: name })}\n`)
 // A static site is built here, by the CLI's `npm run build`; a service is
 // built on Tori from the source, so nothing is installed for it.
 const installed = example.kind !== 'static' || !existsSync(`${name}/package-lock.json`) || run('npm', ['ci', '--ignore-scripts', '--no-fund', '--no-audit'])
-const deployed = installed && run('npx', ['-y', 'tori.host@latest', 'deploy', ...(example.release ? ['--release', example.release] : [])])
+const deployed = installed && (await deployWithRetries(example.release ? ['--release', example.release] : []))
 const after = await live()
 const result = await check(example)
 console.log(`${name}: deploy ${deployed ? 'finished' : 'failed'}, ${after ?? 'nothing'} is live, check: ${result.last}`)
