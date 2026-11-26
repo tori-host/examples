@@ -156,3 +156,20 @@ test('no app binding is committed', () => {
     : execFileSync('git', ['ls-files', '--', ':(glob)**/tori.json'], { cwd: root, encoding: 'utf8' }).split('\n').filter(Boolean)
   assert.deepEqual(committed, [])
 })
+
+// The tests of a Python example install requirements-dev.txt, the build
+// requirements.txt. Compiled separately, the two could pin one package at
+// two versions, and the tests would pass for a server that is not the one
+// that ships.
+test('a Python example tests the versions it ships', () => {
+  const pins = (path) =>
+    new Map([...readFileSync(path, 'utf8').matchAll(/^([A-Za-z0-9._-]+)==([^\s\\]+)/gm)].map(([, name, version]) => [name.toLowerCase(), version]))
+  for (const example of manifest.examples) {
+    const dir = join(root, example.name)
+    if (!existsSync(join(dir, 'requirements-dev.txt'))) continue
+    const ships = pins(join(dir, 'requirements.txt'))
+    const tested = pins(join(dir, 'requirements-dev.txt'))
+    assert.ok(ships.size > 0, `${example.name}: requirements.txt pins nothing`)
+    for (const [name, version] of ships) assert.equal(tested.get(name), version, `${example.name}: ${name}`)
+  }
+})

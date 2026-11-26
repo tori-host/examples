@@ -1,0 +1,2 @@
+# The auditor of amber-ibis's pins. Here so Dependabot moves it.
+pip-audit==2.10.1

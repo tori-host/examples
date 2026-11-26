@@ -1,25 +1,29 @@
-# Every dependency of every example, including the base image and the
-# actions these workflows use. A pull request from Dependabot merges itself
-# once the tests pass (auto-merge.yml), and the deploy workflow then puts it
+# Every dependency of every example, the base image, the actions, and the
+# tools the workflows run (.github/ci). A pull request from Dependabot merges
+# itself once the tests pass (auto-merge.yml), and the deploy workflow puts it
 # live and checks it. Security updates come as soon as an advisory is out;
 # everything else waits three days, so a release that is pulled for being
-# broken or malicious is gone before it gets here.
+# broken or malicious is gone before it gets here. Major versions come in a
+# pull request of their own, so one that breaks the tests holds back only
+# itself.
 version: 2
 updates:
   - package-ecosystem: npm
-    directories: [/misty-heron, /mossy-starling, /sunny-tern]
+    directories: [/misty-heron, /mossy-starling, /sunny-tern, /.github/ci/cli]
     schedule: { interval: weekly, day: monday, time: "05:00", timezone: Europe/Prague }
     cooldown: { default-days: 3 }
     groups:
-      npm: { patterns: ["*"] }
+      npm-major: { update-types: [major] }
+      npm: { update-types: [minor, patch] }
   - package-ecosystem: pip
-    directories: [/amber-ibis]
+    directories: [/amber-ibis, /.github/ci/audit]
     schedule: { interval: weekly, day: monday, time: "05:00", timezone: Europe/Prague }
     cooldown: { default-days: 3 }
     groups:
-      pip: { patterns: ["*"] }
+      pip-major: { update-types: [major] }
+      pip: { update-types: [minor, patch] }
   - package-ecosystem: docker
-    directories: [/crimson-finch]
+    directories: [/crimson-finch, /.github/ci/postgres, /.github/ci/trivy]
     schedule: { interval: weekly, day: monday, time: "05:00", timezone: Europe/Prague }
     cooldown: { default-days: 3 }
   - package-ecosystem: github-actions
@@ -27,4 +31,5 @@ updates:
     schedule: { interval: weekly, day: monday, time: "05:00", timezone: Europe/Prague }
     cooldown: { default-days: 3 }
     groups:
-      actions: { patterns: ["*"] }
+      actions-major: { update-types: [major] }
+      actions: { update-types: [minor, patch] }
