@@ -66,7 +66,10 @@ writeFileSync(`${name}/tori.json`, `${JSON.stringify({ slug: name })}\n`)
 const installed = example.kind !== 'static' || !existsSync(`${name}/package-lock.json`) || run('npm', ['ci', '--ignore-scripts', '--no-fund', '--no-audit'])
 const deployed = installed && (await deployWithRetries(example.release ? ['--release', example.release] : []))
 const after = await live()
-const result = await check(example)
+// What a deploy is judged by: the address after it has settled, never the
+// first answer, which may still come from the version before.
+const AFTER_DEPLOY = { settleMs: 30_000, passes: 3, deadlineMs: 120_000 }
+const result = await check(example, AFTER_DEPLOY)
 console.log(`${name}: deploy ${deployed ? 'finished' : 'failed'}, ${after ?? 'nothing'} is live, check: ${result.last}`)
 if (deployed && result.ok && after !== null) process.exit(0)
 
@@ -75,7 +78,7 @@ if (deployed && result.ok && after !== null) process.exit(0)
 if (before && after && after !== before) {
   console.error(`${name}: putting ${before} back`)
   await api('POST', `/api/apps/${name}/rollback`, { deployId: before })
-  const again = await check(example)
+  const again = await check(example, AFTER_DEPLOY)
   console.error(`${name}: after the rollback, check: ${again.last}`)
 }
 process.exit(1)
