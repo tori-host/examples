@@ -1,0 +1,73 @@
+# Known advisories in what the examples install and ship: npm audit and
+# pip-audit over every lockfile, and trivy over the one image an example
+# brings itself. Not required for a merge or a deploy (test.yml says why).
+# A finding usually has a fix, and Dependabot's security update brings it
+# within hours; one that stays shows up here every day, as an issue.
+name: Audit
+
+on:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "40 4 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  npm:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        dir: [misty-heron, mossy-starling, sunny-tern, .github/ci/cli]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version: 22 }
+      # From the lockfile alone: nothing is installed, nothing runs.
+      - run: npm audit --audit-level=high
+        working-directory: ${{ matrix.dir }}
+
+  pip:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with: { python-version: "3.13" }
+      - run: |
+          python -m venv /tmp/audit
+          /tmp/audit/bin/pip install --quiet --disable-pip-version-check -r .github/ci/audit/requirements.txt
+          /tmp/audit/bin/pip-audit --progress-spinner off --require-hashes --disable-pip -r amber-ibis/requirements.txt
+
+  image:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - run: docker build -q -t crimson-finch:ci crimson-finch && docker build -q -t ci-trivy .github/ci/trivy
+      # HIGH and CRITICAL with a fix: one without a fix is nothing anybody
+      # here can act on.
+      - run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock ci-trivy \
+            image --quiet --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed crimson-finch:ci
+
+  report:
+    needs: [npm, pip, image]
+    if: always() && github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: |
+          .github/scripts/issue.sh "Known advisories in the examples" \
+            "The audit of $GITHUB_SHA found advisories with a fix: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID. Dependabot's security update usually brings the fix; if this comes back the next day, it has not."
+          exit 1
+        env:
+          GH_TOKEN: ${{ github.token }}

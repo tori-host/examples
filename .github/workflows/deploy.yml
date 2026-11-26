@@ -5,6 +5,12 @@
 # a push trigger alone. The schedule compares each example with the commit
 # its tag deployed/<name> points at, deploys what is behind, and then checks
 # every example live, deployed or not.
+#
+# Where code runs, and with what:
+#   plan, test, build   the repository's and the examples' code, no secrets
+#   deploy              node, the deploy script and the pinned CLI, with one
+#                       app's deploy token (an environment per example)
+#   record              no Tori token; moves the tags, opens issues
 name: Deploy
 
 on:
@@ -18,7 +24,7 @@ on:
   workflow_dispatch:
     inputs:
       all:
-        description: Redeploy every example, changed or not
+        description: Redeploy every example, changed or not, including one held after a failure
         type: boolean
         default: false
 
@@ -36,6 +42,8 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       examples: ${{ steps.plan.outputs.examples }}
+      build: ${{ steps.plan.outputs.build }}
+      held: ${{ steps.plan.outputs.held }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { fetch-depth: 0, persist-credentials: false }
@@ -45,6 +53,9 @@ jobs:
         run: node .github/scripts/plan.mjs >> "$GITHUB_OUTPUT"
         env:
           ALL: ${{ github.event.schedule == '20 5 * * 1' || inputs.all == true }}
+          # By hand only: try again what failed, after whatever made it fail
+          # outside this repository has been dealt with.
+          RETRY_HELD: ${{ inputs.all == true }}
 
   test:
     needs: plan
@@ -52,14 +63,37 @@ jobs:
     uses: ./.github/workflows/test.yml
     secrets: inherit
 
-  deploy:
+  build:
     needs: [plan, test]
-    if: needs.plan.outputs.examples != '[]'
+    if: needs.plan.outputs.build != '[]'
     runs-on: ubuntu-24.04
-    # The deploy tokens are secrets of this environment, which only main can use.
-    environment: tori.cloud
-    permissions:
-      contents: write
+    strategy:
+      matrix:
+        example: ${{ fromJSON(needs.plan.outputs.build) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version: 22 }
+      - run: npm ci --ignore-scripts --no-fund --no-audit && npm run build && test -s dist/index.html
+        working-directory: ${{ matrix.example }}
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist-${{ matrix.example }}
+          path: ${{ matrix.example }}/dist
+          if-no-files-found: error
+          retention-days: 7
+
+  deploy:
+    needs: [plan, test, build]
+    if: >-
+      always() && needs.plan.outputs.examples != '[]'
+      && needs.test.result == 'success'
+      && (needs.build.result == 'success' || needs.build.result == 'skipped')
+    runs-on: ubuntu-24.04
+    # Each example's deploy token is the one secret of its own environment,
+    # which only main can use: this job gets that token and no other.
+    environment: tori.cloud-${{ matrix.example.name }}
     strategy:
       fail-fast: false
       # One at a time: they are apps of one account, which Tori lets start
@@ -69,20 +103,51 @@ jobs:
         example: ${{ fromJSON(needs.plan.outputs.examples) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with: { node-version: 22 }
+      - if: contains(fromJSON(needs.plan.outputs.build), matrix.example.name)
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist-${{ matrix.example.name }}
+          path: ${{ matrix.example.name }}/dist
+      - run: npm ci --ignore-scripts --no-fund --no-audit
+        working-directory: .github/ci/cli
       - run: node .github/scripts/deploy.mjs "$EXAMPLE"
         env:
           EXAMPLE: ${{ matrix.example.name }}
-          TORI_TOKEN: ${{ secrets[matrix.example.secret] }}
+          VERIFIED: ${{ matrix.example.verified }}
+          TORI_TOKEN: ${{ secrets.TORI_TOKEN }}
           TORI_NO_UPDATE_CHECK: "1"
-      - name: Remember what is live
-        run: git tag -f "deployed/$EXAMPLE" "$GITHUB_SHA" && git push -f origin "refs/tags/deployed/$EXAMPLE"
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: result-${{ matrix.example.name }}
+          path: result.json
+          if-no-files-found: ignore
+          retention-days: 7
+
+  record:
+    needs: [plan, deploy]
+    if: always() && needs.plan.outputs.examples != '[]'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { fetch-depth: 0 }
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: result-*
+          path: results
+      - run: node .github/scripts/record.mjs
         env:
-          EXAMPLE: ${{ matrix.example.name }}
+          PLANNED: ${{ needs.plan.outputs.examples }}
+          GH_TOKEN: ${{ github.token }}
 
   probe:
-    needs: [plan, test, deploy]
+    needs: [plan, test, build, deploy, record]
     if: always()
     runs-on: ubuntu-24.04
     steps:
@@ -91,10 +156,17 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with: { node-version: 22 }
       - run: node .github/scripts/probe.mjs
+      - if: needs.plan.outputs.held != '[]' && needs.plan.outputs.held != ''
+        run: 'echo "::notice::held after a failed deploy, until the example changes: $HELD"'
+        env:
+          HELD: ${{ needs.plan.outputs.held }}
       # A deploy that failed, or tests that kept it from starting, leave every
-      # example up and still have to turn this run red.
+      # example up and still have to turn this run red, once: the next run
+      # holds that example, and record.mjs has opened an issue.
       - if: >-
           needs.plan.result != 'success'
           || (needs.test.result != 'success' && needs.test.result != 'skipped')
+          || (needs.build.result != 'success' && needs.build.result != 'skipped')
           || (needs.deploy.result != 'success' && needs.deploy.result != 'skipped')
-        run: echo "planning, the tests or a deploy failed; see those jobs" && exit 1
+          || (needs.record.result != 'success' && needs.record.result != 'skipped')
+        run: echo "planning, the tests, a build, a deploy or recording it failed; see those jobs" && exit 1

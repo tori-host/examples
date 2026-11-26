@@ -1,5 +1,7 @@
 # What the tests need on top. Compiled the same way into requirements-dev.txt:
 #   pip-compile --generate-hashes --strip-extras requirements-dev.in
+# held to the versions the build installs, so the tests run what ships.
+-c requirements.txt
 -r requirements.in
 pytest
 httpx2

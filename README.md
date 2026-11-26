@@ -42,20 +42,21 @@ do, environment variables, databases and custom domains.
 
 Every example here is live, and stays current without anyone touching it:
 
-- **Dependabot** updates every dependency, the base image and the actions
-  below. Security fixes come as soon as an advisory is out; everything else
-  waits three days after its release, so a version that is pulled for being
-  broken or malicious never arrives.
-- **Its pull requests merge themselves** when every test passes: each
-  example's own tests, its build, `npm audit` / `pip-audit`, and a scan of the
-  one image an example brings itself. Python dependencies are installed by
-  hash, Node ones without install scripts.
-- **Main is deployed** to tori.cloud by the same `npx tori.host` a visitor
-  runs, each example with a deploy token for its own app only. Each one is
-  then checked live; one that does not pass is rolled back to the version
-  before, and the run turns red.
-- **Every half hour** each example is checked live, and every week each one is
-  rebuilt and the audits run again, with nothing changed.
+- **Dependabot** updates every dependency, the base image, the actions and
+  the tools the workflows run. Security fixes come as soon as an advisory is
+  out; everything else waits three days after its release, so a version that
+  is pulled for being broken or malicious never arrives.
+- **Its pull requests merge themselves** when the tests pass: each example's
+  own tests and its build, crimson-finch's on the Node of its image. Python
+  dependencies are installed by hash, Node ones without install scripts.
+- **Main is deployed** to tori.cloud by the same CLI a visitor runs, pinned,
+  with a deploy token for that one app. Builds run in a job without secrets.
+  Each deploy is then checked live, static sites down to the commit they
+  serve; one that does not pass is rolled back to the last version that did,
+  held until it changes, and reported in an issue.
+- **Every half hour** each example is checked live. Every day `npm audit`,
+  `pip-audit` and an image scan look for known advisories, and open an issue
+  when one has a fix that has not arrived. Every week each example is rebuilt.
 
 `examples.json` lists the examples, and is what the deploy and the checks read.
 
