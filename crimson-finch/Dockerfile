@@ -5,7 +5,7 @@
 # run as a numeric non-root user.
 # Pinned by digest, so the base changes only in a commit that passed the tests.
 # Dependabot moves it.
-FROM node:22-alpine@sha256:1314fb30ec37592d5845e5a160d522c0e680972aa534549940b8d73bde88481a
+FROM node:26-alpine@sha256:6bd9ab43c0ec0190ca7b2d193906cb8b7edf6e7f4afa43ddeccd6452710bffb5
 # The server needs node and nothing else. npm, npx, corepack and yarn come
 # with the image, never run here, and carry most of its advisories.
 RUN rm -rf /usr/local/lib/node_modules /opt/yarn-* \
