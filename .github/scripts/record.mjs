@@ -4,19 +4,36 @@
 // putting it live again every half hour, and says so in an issue, once.
 //
 //   PLANNED=<plan's examples JSON> GH_TOKEN=... node .github/scripts/record.mjs
-// reads results/result-<name>/result.json, written by deploy.mjs.
+// reads every result.json under results/, written by deploy.mjs. Found by
+// walking, not by path: download-artifact puts one artifact straight into
+// results/ and several into a directory each, and a result looked for in
+// the wrong place reads as a deploy that failed.
 import { execFileSync } from 'node:child_process'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 const sha = process.env.GITHUB_SHA
 const run = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
 const git = (...args) => execFileSync('git', ['-c', 'user.name=github-actions[bot]', '-c', 'user.email=41898282+github-actions[bot]@users.noreply.github.com', ...args], { stdio: 'inherit' })
 const issue = (title, body) => execFileSync('.github/scripts/issue.sh', [title, body], { stdio: 'inherit' })
 
+const results = new Map()
+const walk = (dir) => {
+  for (const entry of existsSync(dir) ? readdirSync(dir, { withFileTypes: true }) : []) {
+    const path = join(dir, entry.name)
+    if (entry.isDirectory()) walk(path)
+    else if (entry.name === 'result.json') {
+      const result = JSON.parse(readFileSync(path, 'utf8'))
+      results.set(result.name, result)
+    }
+  }
+}
+walk('results')
+console.log(`results for: ${[...results.keys()].join(', ') || 'none'}`)
+
 let failures = 0
 for (const { name } of JSON.parse(process.env.PLANNED ?? '[]')) {
-  const path = `results/result-${name}/result.json`
-  const result = existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : null
+  const result = results.get(name) ?? null
   const title = `Deploy of ${name} failed`
   if (result?.skipped) {
     console.log(`${name}: not deployed, main moved on`)
